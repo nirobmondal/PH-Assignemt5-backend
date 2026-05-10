@@ -8,17 +8,15 @@ import { CookieUtils } from "../../utils/cookie";
 import { tokenUtils } from "../../utils/token";
 import { authService } from "./auth.service";
 import { StatusCodes } from "http-status-codes";
+import { v4 as uuidv4 } from "uuid";
+import { prisma } from "../../lib/prisma";
 
 const registerCustomer = catchAsync(async (req: Request, res: Response) => {
   const payload = req.body;
 
   const result = await authService.registerCustomer(payload);
 
-  const { accessToken, refreshToken, token, ...rest } = result;
-
-  tokenUtils.setAccessTokenCookie(res, accessToken);
-  tokenUtils.setRefreshTokenCookie(res, refreshToken);
-  tokenUtils.setBetterAuthSessionCookie(res, token as string);
+  const { token, ...rest } = result;
 
   sendResponse(res, {
     httpStatusCode: StatusCodes.CREATED,
@@ -26,8 +24,6 @@ const registerCustomer = catchAsync(async (req: Request, res: Response) => {
     message: "Customer registered successfully",
     data: {
       token,
-      accessToken,
-      refreshToken,
       ...rest,
     },
   });
@@ -211,9 +207,8 @@ const googleLogin = catchAsync((req: Request, res: Response) => {
 });
 
 const googleLoginSuccess = catchAsync(async (req: Request, res: Response) => {
-  const redirectPath = (req.query.redirect as string) || "/dashboard";
-
   const sessionToken = req.cookies["better-auth.session_token"];
+  console.log("session token: ", sessionToken);
 
   if (!sessionToken) {
     return res.redirect(`${envVars.FRONTEND_URL}/login?error=oauth_failed`);
@@ -235,22 +230,65 @@ const googleLoginSuccess = catchAsync(async (req: Request, res: Response) => {
 
   const result = await authService.googleLoginSuccess(session);
 
-  const { accessToken, refreshToken } = result;
+  const code = uuidv4();
+  console.log("authCode: ", code);
 
-  tokenUtils.setAccessTokenCookie(res, accessToken);
-  tokenUtils.setRefreshTokenCookie(res, refreshToken);
+  const isCodeExists = await prisma.oAuthCode.findUnique({
+    where: {
+      userId: session.user.id,
+    },
+  });
 
-  // ?redirect=//profile -> /profile
-  const isValidRedirectPath =
-    redirectPath.startsWith("/") && !redirectPath.startsWith("//");
-  const finalRedirectPath = isValidRedirectPath ? redirectPath : "/dashboard";
+  if (isCodeExists) {
+    await prisma.oAuthCode.delete({
+      where: {
+        userId: session.user.id,
+      },
+    });
+  }
 
-  res.redirect(`${envVars.FRONTEND_URL}${finalRedirectPath}`);
+  await prisma.oAuthCode.create({
+    data: {
+      userId: session.user.id,
+      code,
+      token: sessionToken,
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000), // code expires in 5 minutes
+    },
+  });
+
+  res.redirect(`${envVars.FRONTEND_URL}/auth/google/callback?code=${code}`);
 });
 
 const handleOAuthError = catchAsync((req: Request, res: Response) => {
   const error = (req.query.error as string) || "oauth_failed";
   res.redirect(`${envVars.FRONTEND_URL}/login?error=${error}`);
+});
+
+const verifyOauthCode = catchAsync(async (req: Request, res: Response) => {
+  const { code } = req.body;
+  const { token, accessToken, refreshToken } =
+    await authService.verifyOauthCode(code);
+
+  tokenUtils.setAccessTokenCookie(res, accessToken);
+  tokenUtils.setRefreshTokenCookie(res, refreshToken);
+  tokenUtils.setBetterAuthSessionCookie(res, token);
+
+  console.log("accesToken: ", accessToken);
+  console.log("refreshToken: ", refreshToken);
+  console.log("sessionToken: ", token);
+
+  sendResponse(res, {
+    httpStatusCode: StatusCodes.OK,
+    success: true,
+    message: "OAuth code verified successfully",
+    data: {
+      token,
+      accessToken,
+      refreshToken,
+    },
+  });
 });
 
 export const authController = {
@@ -267,4 +305,5 @@ export const authController = {
   googleLogin,
   googleLoginSuccess,
   handleOAuthError,
+  verifyOauthCode,
 };

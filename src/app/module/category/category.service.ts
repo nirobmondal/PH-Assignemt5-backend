@@ -33,7 +33,7 @@ const createCategory = async (
 const getAllCategory = async (): Promise<Category[]> => {
   const category = await prisma.category.findMany({
     orderBy: {
-      createdAt: "desc",
+      name: "asc",
     },
   });
   return category;

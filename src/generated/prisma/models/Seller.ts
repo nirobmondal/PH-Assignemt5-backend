@@ -265,7 +265,7 @@ export type SellerCreateInput = {
   shopPhone?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  user: Prisma.UserCreateNestedOneWithoutSellerProfileInput
+  user: Prisma.UserCreateNestedOneWithoutSellerInput
   medicines?: Prisma.MedicineCreateNestedManyWithoutSellerInput
   sellerOrders?: Prisma.SellerOrderCreateNestedManyWithoutSellerInput
 }
@@ -289,7 +289,7 @@ export type SellerUpdateInput = {
   shopPhone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  user?: Prisma.UserUpdateOneRequiredWithoutSellerProfileNestedInput
+  user?: Prisma.UserUpdateOneRequiredWithoutSellerNestedInput
   medicines?: Prisma.MedicineUpdateManyWithoutSellerNestedInput
   sellerOrders?: Prisma.SellerOrderUpdateManyWithoutSellerNestedInput
 }
@@ -502,7 +502,7 @@ export type SellerCreateWithoutMedicinesInput = {
   shopPhone?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  user: Prisma.UserCreateNestedOneWithoutSellerProfileInput
+  user: Prisma.UserCreateNestedOneWithoutSellerInput
   sellerOrders?: Prisma.SellerOrderCreateNestedManyWithoutSellerInput
 }
 
@@ -540,7 +540,7 @@ export type SellerUpdateWithoutMedicinesInput = {
   shopPhone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  user?: Prisma.UserUpdateOneRequiredWithoutSellerProfileNestedInput
+  user?: Prisma.UserUpdateOneRequiredWithoutSellerNestedInput
   sellerOrders?: Prisma.SellerOrderUpdateManyWithoutSellerNestedInput
 }
 
@@ -562,7 +562,7 @@ export type SellerCreateWithoutSellerOrdersInput = {
   shopPhone?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  user: Prisma.UserCreateNestedOneWithoutSellerProfileInput
+  user: Prisma.UserCreateNestedOneWithoutSellerInput
   medicines?: Prisma.MedicineCreateNestedManyWithoutSellerInput
 }
 
@@ -600,7 +600,7 @@ export type SellerUpdateWithoutSellerOrdersInput = {
   shopPhone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  user?: Prisma.UserUpdateOneRequiredWithoutSellerProfileNestedInput
+  user?: Prisma.UserUpdateOneRequiredWithoutSellerNestedInput
   medicines?: Prisma.MedicineUpdateManyWithoutSellerNestedInput
 }
 

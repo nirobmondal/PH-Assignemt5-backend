@@ -187,12 +187,7 @@ const updateCartItem = async (userId: string, payload: IUpdateCartPayload) => {
       throw new AppError(status.NOT_FOUND, "Cart item not found");
     }
 
-    const nextQuantity =
-      payload.quantity !== undefined
-        ? payload.quantity
-        : cartItem.quantity + (payload.quantityChange as number);
-
-    if (nextQuantity <= 0) {
+    if (payload.quantity <= 0) {
       await tx.cartItem.delete({
         where: {
           id: cartItem.id,
@@ -202,7 +197,7 @@ const updateCartItem = async (userId: string, payload: IUpdateCartPayload) => {
       const medicine = await validateMedicineForCart(
         tx as typeof prisma,
         payload.medicineId,
-        nextQuantity,
+        payload.quantity,
       );
 
       await tx.cartItem.update({
@@ -210,7 +205,7 @@ const updateCartItem = async (userId: string, payload: IUpdateCartPayload) => {
           id: cartItem.id,
         },
         data: {
-          quantity: nextQuantity,
+          quantity: payload.quantity,
           unitPrice: medicine.price,
         },
       });

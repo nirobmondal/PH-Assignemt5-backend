@@ -393,6 +393,7 @@ export const ModelName = {
   Category: 'Category',
   Manufacturer: 'Manufacturer',
   Medicine: 'Medicine',
+  OAuthCode: 'OAuthCode',
   Order: 'Order',
   OrderItem: 'OrderItem',
   Review: 'Review',
@@ -413,7 +414,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "cart" | "cartItem" | "category" | "manufacturer" | "medicine" | "order" | "orderItem" | "review" | "seller" | "sellerOrder"
+    modelProps: "user" | "session" | "account" | "verification" | "cart" | "cartItem" | "category" | "manufacturer" | "medicine" | "oAuthCode" | "order" | "orderItem" | "review" | "seller" | "sellerOrder"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1083,6 +1084,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    OAuthCode: {
+      payload: Prisma.$OAuthCodePayload<ExtArgs>
+      fields: Prisma.OAuthCodeFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.OAuthCodeFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthCodePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.OAuthCodeFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthCodePayload>
+        }
+        findFirst: {
+          args: Prisma.OAuthCodeFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthCodePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.OAuthCodeFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthCodePayload>
+        }
+        findMany: {
+          args: Prisma.OAuthCodeFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthCodePayload>[]
+        }
+        create: {
+          args: Prisma.OAuthCodeCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthCodePayload>
+        }
+        createMany: {
+          args: Prisma.OAuthCodeCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.OAuthCodeCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthCodePayload>[]
+        }
+        delete: {
+          args: Prisma.OAuthCodeDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthCodePayload>
+        }
+        update: {
+          args: Prisma.OAuthCodeUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthCodePayload>
+        }
+        deleteMany: {
+          args: Prisma.OAuthCodeDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.OAuthCodeUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.OAuthCodeUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthCodePayload>[]
+        }
+        upsert: {
+          args: Prisma.OAuthCodeUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthCodePayload>
+        }
+        aggregate: {
+          args: Prisma.OAuthCodeAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateOAuthCode>
+        }
+        groupBy: {
+          args: Prisma.OAuthCodeGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.OAuthCodeGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.OAuthCodeCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.OAuthCodeCountAggregateOutputType> | number
+        }
+      }
+    }
     Order: {
       payload: Prisma.$OrderPayload<ExtArgs>
       fields: Prisma.OrderFieldRefs
@@ -1502,10 +1577,7 @@ export const UserScalarFieldEnum = {
   updatedAt: 'updatedAt',
   phone: 'phone',
   role: 'role',
-  status: 'status',
-  needPasswordChange: 'needPasswordChange',
-  isDeleted: 'isDeleted',
-  deletedAt: 'deletedAt'
+  status: 'status'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
@@ -1623,6 +1695,20 @@ export const MedicineScalarFieldEnum = {
 } as const
 
 export type MedicineScalarFieldEnum = (typeof MedicineScalarFieldEnum)[keyof typeof MedicineScalarFieldEnum]
+
+
+export const OAuthCodeScalarFieldEnum = {
+  id: 'id',
+  code: 'code',
+  userId: 'userId',
+  token: 'token',
+  accessToken: 'accessToken',
+  refreshToken: 'refreshToken',
+  expiresAt: 'expiresAt',
+  createdAt: 'createdAt'
+} as const
+
+export type OAuthCodeScalarFieldEnum = (typeof OAuthCodeScalarFieldEnum)[keyof typeof OAuthCodeScalarFieldEnum]
 
 
 export const OrderScalarFieldEnum = {
@@ -1976,6 +2062,7 @@ export type GlobalOmitConfig = {
   category?: Prisma.CategoryOmit
   manufacturer?: Prisma.ManufacturerOmit
   medicine?: Prisma.MedicineOmit
+  oAuthCode?: Prisma.OAuthCodeOmit
   order?: Prisma.OrderOmit
   orderItem?: Prisma.OrderItemOmit
   review?: Prisma.ReviewOmit

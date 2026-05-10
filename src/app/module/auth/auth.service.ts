@@ -31,39 +31,16 @@ const registerCustomer = async (payload: IRegisterCustomerPayload) => {
   }
 
   try {
-    const cart = await prisma.$transaction(async (tx) => {
-      const cartTx = await tx.cart.create({
+    await prisma.$transaction(async (tx) => {
+      await tx.cart.create({
         data: {
           userId: data.user.id,
         },
       });
-
-      return cartTx;
-    });
-
-    const accessToken = tokenUtils.getAccessToken({
-      userId: data.user.id,
-      role: data.user.role,
-      name: data.user.name,
-      email: data.user.email,
-      status: data.user.status,
-      emailVerified: data.user.emailVerified,
-    });
-
-    const refreshToken = tokenUtils.getRefreshToken({
-      userId: data.user.id,
-      role: data.user.role,
-      name: data.user.name,
-      email: data.user.email,
-      status: data.user.status,
-      emailVerified: data.user.emailVerified,
     });
 
     return {
       ...data,
-      accessToken,
-      refreshToken,
-      cart,
     };
   } catch (error) {
     console.log("Transaction error : ", error);
@@ -121,7 +98,7 @@ const getMe = async (user: IRequestUser) => {
       id: user.userId,
     },
     include: {
-      sellerProfile: true,
+      seller: true,
     },
   });
 
@@ -135,7 +112,7 @@ const getMe = async (user: IRequestUser) => {
 const updateMe = async (user: IRequestUser, payload: IUpdateMePayload) => {
   const isUserExists = await prisma.user.findUnique({
     where: { id: user.userId },
-    include: { sellerProfile: true },
+    include: { seller: true },
   });
 
   if (!isUserExists) {
@@ -146,10 +123,10 @@ const updateMe = async (user: IRequestUser, payload: IUpdateMePayload) => {
     throw new AppError(StatusCodes.FORBIDDEN, "User is banned");
   }
 
-  const { sellerProfile, ...userPayload } = payload;
-  const sellerPayload = sellerProfile ?? {};
+  const { seller, ...userPayload } = payload;
+  const sellerPayload = seller ?? {};
 
-  if (sellerProfile && isUserExists.role !== Role.SELLER) {
+  if (seller && isUserExists.role !== Role.SELLER) {
     throw new AppError(
       StatusCodes.BAD_REQUEST,
       "Only seller can update seller profile",
@@ -190,7 +167,7 @@ const updateMe = async (user: IRequestUser, payload: IUpdateMePayload) => {
         );
       }
 
-      if (!isUserExists.sellerProfile) {
+      if (!isUserExists.seller) {
         throw new AppError(
           StatusCodes.BAD_REQUEST,
           "Seller profile does not exist",
@@ -205,7 +182,7 @@ const updateMe = async (user: IRequestUser, payload: IUpdateMePayload) => {
 
     return tx.user.findUnique({
       where: { id: user.userId },
-      include: { sellerProfile: true },
+      include: { seller: true },
     });
   });
 
@@ -463,6 +440,24 @@ const googleLoginSuccess = async (session: Record<string, any>) => {
   };
 };
 
+const verifyOauthCode = async (code: string) => {
+  const oauthCode = await prisma.oAuthCode.findUnique({
+    where: {
+      code,
+    },
+  });
+
+  if (!oauthCode) {
+    throw new AppError(StatusCodes.NOT_FOUND, "OAuth code not found");
+  }
+
+  if (oauthCode.expiresAt < new Date()) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "OAuth code expired");
+  }
+
+  return oauthCode;
+};
+
 export const authService = {
   registerCustomer,
   loginUser,
@@ -475,4 +470,5 @@ export const authService = {
   forgetPassword,
   resetPassword,
   googleLoginSuccess,
+  verifyOauthCode,
 };

@@ -33,7 +33,7 @@ const createManufacturer = async (
 const getAllManufacturer = async (): Promise<Manufacturer[]> => {
   const manufacturers = await prisma.manufacturer.findMany({
     orderBy: {
-      createdAt: "desc",
+      name: "asc",
     },
   });
 

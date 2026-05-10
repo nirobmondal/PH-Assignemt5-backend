@@ -1,21 +1,5 @@
 import z from "zod";
 
-const optionalBooleanSchema = z.preprocess((value) => {
-  if (value === undefined || value === null || value === "") {
-    return undefined;
-  }
-
-  if (value === true || value === "true" || value === "1") {
-    return true;
-  }
-
-  if (value === false || value === "false" || value === "0") {
-    return false;
-  }
-
-  return value;
-}, z.boolean().optional());
-
 const createMedicineSchema = z.object({
   name: z
     .string()
@@ -45,8 +29,8 @@ const createMedicineSchema = z.object({
   categoryId: z.string().uuid("Category id must be a valid UUID"),
   manufacturerId: z.string().uuid("Manufacturer id must be a valid UUID"),
   imageUrl: z.string().url("Image URL must be a valid URL").optional(),
-  isAvailable: optionalBooleanSchema,
-  isFeatured: optionalBooleanSchema,
+  isAvailable: z.boolean().optional(),
+  isFeatured: z.boolean().optional(),
 });
 
 const updateMedicineSchema = z
@@ -89,8 +73,8 @@ const updateMedicineSchema = z
       .uuid("Manufacturer id must be a valid UUID")
       .optional(),
     imageUrl: z.string().url("Image URL must be a valid URL").optional(),
-    isAvailable: optionalBooleanSchema,
-    isFeatured: optionalBooleanSchema,
+    isAvailable: z.boolean().optional(),
+    isFeatured: z.boolean().optional(),
   })
   .refine((value) => Object.keys(value).length > 0, {
     message: "At least one field is required for update",

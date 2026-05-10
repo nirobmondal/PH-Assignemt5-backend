@@ -60,6 +60,7 @@ export const ModelName = {
   Category: 'Category',
   Manufacturer: 'Manufacturer',
   Medicine: 'Medicine',
+  OAuthCode: 'OAuthCode',
   Order: 'Order',
   OrderItem: 'OrderItem',
   Review: 'Review',
@@ -93,10 +94,7 @@ export const UserScalarFieldEnum = {
   updatedAt: 'updatedAt',
   phone: 'phone',
   role: 'role',
-  status: 'status',
-  needPasswordChange: 'needPasswordChange',
-  isDeleted: 'isDeleted',
-  deletedAt: 'deletedAt'
+  status: 'status'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
@@ -214,6 +212,20 @@ export const MedicineScalarFieldEnum = {
 } as const
 
 export type MedicineScalarFieldEnum = (typeof MedicineScalarFieldEnum)[keyof typeof MedicineScalarFieldEnum]
+
+
+export const OAuthCodeScalarFieldEnum = {
+  id: 'id',
+  code: 'code',
+  userId: 'userId',
+  token: 'token',
+  accessToken: 'accessToken',
+  refreshToken: 'refreshToken',
+  expiresAt: 'expiresAt',
+  createdAt: 'createdAt'
+} as const
+
+export type OAuthCodeScalarFieldEnum = (typeof OAuthCodeScalarFieldEnum)[keyof typeof OAuthCodeScalarFieldEnum]
 
 
 export const OrderScalarFieldEnum = {

@@ -5,6 +5,5 @@ export interface IAddToCartPayload {
 
 export interface IUpdateCartPayload {
   medicineId: string;
-  quantity?: number;
-  quantityChange?: number;
+  quantity: number;
 }

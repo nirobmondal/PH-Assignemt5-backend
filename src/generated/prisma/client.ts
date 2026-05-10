@@ -87,6 +87,11 @@ export type Manufacturer = Prisma.ManufacturerModel
  */
 export type Medicine = Prisma.MedicineModel
 /**
+ * Model OAuthCode
+ * 
+ */
+export type OAuthCode = Prisma.OAuthCodeModel
+/**
  * Model Order
  * 
  */

@@ -5,9 +5,8 @@ import { prisma } from "../../lib/prisma";
 import { QueryBuilder } from "../../utils/QueryBuilder";
 import { IQueryParams } from "../../interfaces/query.interface";
 import {
-  medicineDetailIncludeConfig,
+  medicineIncludeConfig,
   medicinePublicFilterableFields,
-  medicinePublicIncludeConfig,
   medicineSearchableFields,
   medicineSellerFilterableFields,
   medicineSellerIncludeConfig,
@@ -80,7 +79,7 @@ const createMedicine = async (
       ...payload,
       sellerId: seller.id,
     },
-    include: medicineDetailIncludeConfig as Prisma.MedicineInclude,
+    include: medicineIncludeConfig as Prisma.MedicineInclude,
   });
 
   return medicine;
@@ -92,11 +91,7 @@ const getAllMedicines = async (query: IQueryParams) => {
     filterableFields: medicinePublicFilterableFields,
   })
     .where({ isAvailable: true })
-    .dynamicInclude(medicinePublicIncludeConfig, [
-      "category",
-      "manufacturer",
-      "seller",
-    ])
+    .include(medicineIncludeConfig)
     .search()
     .filter()
     .paginate()
@@ -111,7 +106,7 @@ const getMedicineById = async (medicineId: string) => {
     where: {
       id: medicineId,
     },
-    include: medicineDetailIncludeConfig,
+    include: medicineIncludeConfig,
   });
 
   if (!medicine) {
@@ -129,7 +124,7 @@ const getMedicineBySellerId = async (userId: string, query: IQueryParams) => {
     filterableFields: medicineSellerFilterableFields,
   })
     .where({ sellerId: seller.id })
-    .dynamicInclude(medicineSellerIncludeConfig, ["category", "manufacturer"])
+    .include(medicineSellerIncludeConfig)
     .search()
     .filter()
     .paginate()
@@ -210,7 +205,7 @@ const updateMedicine = async (
       id: medicineId,
     },
     data: payload,
-    include: medicineDetailIncludeConfig as Prisma.MedicineInclude,
+    include: medicineIncludeConfig as Prisma.MedicineInclude,
   });
 
   return medicine;
@@ -240,7 +235,7 @@ const deleteMedicine = async (medicineId: string, userId: string) => {
       isAvailable: false,
       isFeatured: false,
     },
-    include: medicineDetailIncludeConfig as Prisma.MedicineInclude,
+    include: medicineIncludeConfig as Prisma.MedicineInclude,
   });
 
   return medicine;

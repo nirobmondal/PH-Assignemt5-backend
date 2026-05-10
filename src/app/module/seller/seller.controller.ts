@@ -27,7 +27,12 @@ const createSellerProfile = catchAsync(async (req: Request, res: Response) => {
     httpStatusCode: status.CREATED,
     success: true,
     message: "Seller profile created successfully",
-    data: rest,
+    data: {
+      token,
+      accessToken,
+      refreshToken,
+      ...rest,
+    },
   });
 });
 

@@ -30,5 +30,5 @@ export interface IUpdateMePayload {
   name?: string;
   phone?: string;
   image?: string;
-  sellerProfile?: IUpdateSellerProfilePayload;
+  seller?: IUpdateSellerProfilePayload;
 }

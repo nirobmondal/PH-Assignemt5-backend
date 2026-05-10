@@ -21,7 +21,7 @@ const createSellerProfile = async (
       id: userId,
     },
     include: {
-      sellerProfile: true,
+      seller: true,
     },
   });
 
@@ -36,7 +36,7 @@ const createSellerProfile = async (
     );
   }
 
-  if (user.sellerProfile) {
+  if (user.seller) {
     throw new AppError(status.CONFLICT, "Seller profile already exists");
   }
 
@@ -80,8 +80,8 @@ const createSellerProfile = async (
     });
 
     return {
-      sellerProfile,
-      updatedUser,
+      seller: sellerProfile,
+      user: updatedUser,
       accessToken,
       refreshToken,
     };

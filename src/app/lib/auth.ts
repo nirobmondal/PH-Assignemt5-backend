@@ -16,7 +16,7 @@ export const auth = betterAuth({
 
   emailAndPassword: {
     enabled: true,
-    // requireEmailVerification: true,
+    requireEmailVerification: true,
   },
 
   socialProviders: {
@@ -36,11 +36,11 @@ export const auth = betterAuth({
     },
   },
 
-  // emailVerification: {
-  //   sendOnSignUp: true,
-  //   sendOnSignIn: true,
-  //   autoSignInAfterVerification: true,
-  // },
+  emailVerification: {
+    sendOnSignUp: true,
+    sendOnSignIn: true,
+    autoSignInAfterVerification: true,
+  },
 
   user: {
     additionalFields: {
@@ -99,7 +99,7 @@ export const auth = betterAuth({
                 otp,
                 title: "Email Verification OTP",
                 purpose: "verify your Niramoy account",
-                expiresIn: "2 minutes",
+                expiresIn: "5 minutes",
               },
             });
           }
@@ -120,13 +120,13 @@ export const auth = betterAuth({
                 otp,
                 title: "Password Reset OTP",
                 purpose: "reset your account password",
-                expiresIn: "2 minutes",
+                expiresIn: "5 minutes",
               },
             });
           }
         }
       },
-      expiresIn: 2 * 60, // 2 minutes in seconds
+      expiresIn: 5 * 60, // 5 minutes in seconds
       otpLength: 6,
     }),
   ],

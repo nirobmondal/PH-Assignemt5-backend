@@ -64,7 +64,7 @@ const updateMeValidationSchema = z
     name: z.string().trim().min(1).optional(),
     phone: z.string().trim().min(1).optional(),
     image: z.url("Image must be a valid URL").optional(),
-    sellerProfile: updateSellerProfileValidationSchema,
+    seller: updateSellerProfileValidationSchema,
   })
   .refine((value) => Object.keys(value).length > 0, {
     message: "At least one field is required to update profile",

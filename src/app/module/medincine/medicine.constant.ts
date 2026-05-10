@@ -15,7 +15,7 @@ export const medicineSellerFilterableFields = [
   "isFeatured",
 ];
 
-export const medicinePublicIncludeConfig = {
+export const medicineIncludeConfig = {
   category: {
     select: {
       id: true,
@@ -51,38 +51,6 @@ export const medicineSellerIncludeConfig = {
       id: true,
       name: true,
       country: true,
-    },
-  },
-};
-
-export const medicineDetailIncludeConfig = {
-  category: {
-    select: {
-      id: true,
-      name: true,
-      description: true,
-    },
-  },
-  manufacturer: {
-    select: {
-      id: true,
-      name: true,
-      country: true,
-    },
-  },
-  seller: {
-    select: {
-      id: true,
-      shopName: true,
-      shopAddress: true,
-      shopPhone: true,
-      user: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-        },
-      },
     },
   },
 };
