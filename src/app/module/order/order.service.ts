@@ -1,4 +1,5 @@
 import status from "http-status";
+import { randomUUID } from "crypto";
 import AppError from "../../errorHelpers/AppError";
 import { prisma } from "../../lib/prisma";
 import {
@@ -13,6 +14,8 @@ import {
 import { QueryBuilder } from "../../utils/QueryBuilder";
 import { IQueryParams } from "../../interfaces/query.interface";
 import { Order } from "../../../generated/prisma/client";
+import { stripe } from "../../config/stripe.config";
+import { envVars } from "../../config/env";
 
 const orderInclude = {
   customer: {
@@ -46,6 +49,7 @@ const orderInclude = {
             select: {
               id: true,
               name: true,
+              price: true,
               imageUrl: true,
               dosageForm: true,
               strength: true,
@@ -63,10 +67,11 @@ const validateOrderStatusTransition = (
 ) => {
   const transitions: Partial<Record<OrderStatus, OrderStatus[]>> = {
     [OrderStatus.PLACED]: [OrderStatus.PROCESSING],
-    [OrderStatus.PROCESSING]: [OrderStatus.SHIPPED, OrderStatus.CANCELLED],
+    [OrderStatus.PROCESSING]: [OrderStatus.SHIPPED],
     [OrderStatus.SHIPPED]: [OrderStatus.DELIVERED],
     [OrderStatus.DELIVERED]: [],
     [OrderStatus.CANCELLED]: [],
+    [OrderStatus.PENDING]: [],
   };
 
   if (currentStatus === nextStatus) {
@@ -133,7 +138,7 @@ const getScopedOrder = async (
   });
 };
 
-const placeOrder = async (userId: string, payload: ICreateOrderPayload) => {
+const initiateOrder = async (userId: string, payload: ICreateOrderPayload) => {
   const result = await prisma.$transaction(async (tx) => {
     const cart = await tx.cart.findUnique({
       where: {
@@ -198,8 +203,8 @@ const placeOrder = async (userId: string, payload: ICreateOrderPayload) => {
       data: {
         customerId: userId,
         totalAmount: Number(orderTotal.toFixed(2)),
-        status: OrderStatus.PLACED,
-        paymentStatus: PaymentStatus.UNPAID,
+        status: OrderStatus.PENDING,
+        paymentStatus: PaymentStatus.PENDING,
         shippingName: payload.shippingName,
         shippingPhone: payload.shippingPhone,
         shippingAddress: payload.shippingAddress,
@@ -295,6 +300,86 @@ const placeOrder = async (userId: string, payload: ICreateOrderPayload) => {
   return result;
 };
 
+const placeOrderWithPayment = async (userId: string, orderId: string) => {
+  const order = await prisma.order.findFirst({
+    where: {
+      id: orderId,
+      customerId: userId,
+    },
+    include: {
+      customer: {
+        select: {
+          name: true,
+          email: true,
+        },
+      },
+    },
+  });
+
+  if (!order) {
+    throw new AppError(status.NOT_FOUND, "Order not found");
+  }
+
+  if (order.status !== OrderStatus.PENDING) {
+    throw new AppError(status.BAD_REQUEST, "Only pending orders can be paid");
+  }
+
+  if (order.paymentStatus !== PaymentStatus.PENDING) {
+    throw new AppError(status.BAD_REQUEST, "Order is already paid");
+  }
+
+  let payment = await prisma.payment.findUnique({
+    where: {
+      orderId: order.id,
+    },
+  });
+
+  if (!payment) {
+    payment = await prisma.payment.create({
+      data: {
+        orderId: order.id,
+        transactionId: randomUUID(),
+      },
+    });
+  }
+
+  const amount = Number(order.totalAmount);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new AppError(status.BAD_REQUEST, "Invalid order amount");
+  }
+
+  const session = await stripe.checkout.sessions.create({
+    mode: "payment",
+    payment_method_types: ["card"],
+    line_items: [
+      {
+        price_data: {
+          currency: "bdt",
+          product_data: {
+            name: "Medicine Order",
+            description: `Order ${order.id}`,
+          },
+          unit_amount: Math.round(amount * 100),
+        },
+        quantity: 1,
+      },
+    ],
+    customer_email: order.customer.email,
+    metadata: {
+      orderId: order.id,
+      paymentId: payment.id,
+    },
+    success_url: `${envVars.FRONTEND_URL}/dashboard/payment/success`,
+    cancel_url: `${envVars.FRONTEND_URL}/dashboard/order`,
+  });
+
+  return {
+    paymentUrl: session.url,
+    sessionId: session.id,
+    orderId: order.id,
+  };
+};
+
 const getOrders = async (userId: string, role: Role, query: IQueryParams) => {
   let baseWhere: Record<string, unknown> = {};
 
@@ -379,10 +464,10 @@ const cancelOrder = async (orderId: string, userId: string) => {
       throw new AppError(status.NOT_FOUND, "Order not found");
     }
 
-    if (order.status !== OrderStatus.PLACED) {
+    if (order.status !== OrderStatus.PENDING) {
       throw new AppError(
         status.BAD_REQUEST,
-        "Only placed orders can be cancelled by customer",
+        "Only pending orders can be cancelled by customer",
       );
     }
 
@@ -416,6 +501,60 @@ const cancelOrder = async (orderId: string, userId: string) => {
   });
 
   return result;
+};
+
+const removeExpiredPendingOrders = async () => {
+  const cutoffDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+  const orders = await prisma.order.findMany({
+    where: {
+      status: OrderStatus.PENDING,
+      createdAt: {
+        lt: cutoffDate,
+      },
+    },
+    include: {
+      sellerOrders: {
+        include: {
+          items: true,
+        },
+      },
+    },
+  });
+
+  if (orders.length === 0) {
+    return { deletedCount: 0 };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    for (const order of orders) {
+      for (const sellerOrder of order.sellerOrders) {
+        for (const item of sellerOrder.items) {
+          await tx.medicine.update({
+            where: {
+              id: item.medicineId,
+            },
+            data: {
+              stock: {
+                increment: item.quantity,
+              },
+              isAvailable: true,
+            },
+          });
+        }
+      }
+    }
+
+    await tx.order.deleteMany({
+      where: {
+        id: {
+          in: orders.map((order) => order.id),
+        },
+      },
+    });
+  });
+
+  return { deletedCount: orders.length };
 };
 
 const updateOrderStatus = async (
@@ -471,9 +610,11 @@ const updateOrderStatus = async (
 };
 
 export const orderService = {
-  placeOrder,
+  initiateOrder,
+  placeOrderWithPayment,
   getOrders,
   getOrderById,
   cancelOrder,
   updateOrderStatus,
+  removeExpiredPendingOrders,
 };

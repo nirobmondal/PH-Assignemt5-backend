@@ -1,5 +1,4 @@
 import z from "zod";
-import { OrderStatus } from "../../../generated/prisma/enums";
 
 const createOrderSchema = z.object({
   shippingName: z
@@ -30,9 +29,7 @@ const createOrderSchema = z.object({
 });
 
 const updateOrderStatusSchema = z.object({
-  status: z.enum(OrderStatus).refine((value) => value !== OrderStatus.PLACED, {
-    message: "Order status cannot be set to PLACED manually",
-  }),
+  status: z.enum(["PROCESSING", "SHIPPED", "DELIVERED"]),
 });
 
 export const orderValidation = {

@@ -4,16 +4,16 @@ model Order {
 
   totalAmount Decimal @db.Decimal(10, 2)
 
-  status        OrderStatus   @default(PLACED)
-  paymentMethod PaymentMethod @default(COD)
-  paymentStatus PaymentStatus @default(UNPAID)
+  status        OrderStatus   @default(PENDING)
+  paymentStatus PaymentStatus @default(PENDING)
 
   shippingName    String
   shippingPhone   String
   shippingAddress String
   shippingCity    String
 
-  note String?
+  note    String?
+  payment Payment?
 
   customer     User          @relation(fields: [customerId], references: [id], onDelete: Restrict)
   sellerOrders SellerOrder[]

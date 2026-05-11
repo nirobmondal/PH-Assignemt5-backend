@@ -10,6 +10,7 @@ enum UserStatus {
 }
 
 enum OrderStatus {
+  PENDING
   PLACED
   PROCESSING
   SHIPPED
@@ -18,10 +19,6 @@ enum OrderStatus {
 }
 
 enum PaymentStatus {
-  UNPAID
+  PENDING
   PAID
-}
-
-enum PaymentMethod {
-  COD
 }

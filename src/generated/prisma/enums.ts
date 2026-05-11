@@ -27,6 +27,7 @@ export type UserStatus = (typeof UserStatus)[keyof typeof UserStatus]
 
 
 export const OrderStatus = {
+  PENDING: 'PENDING',
   PLACED: 'PLACED',
   PROCESSING: 'PROCESSING',
   SHIPPED: 'SHIPPED',
@@ -38,15 +39,8 @@ export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus]
 
 
 export const PaymentStatus = {
-  UNPAID: 'UNPAID',
+  PENDING: 'PENDING',
   PAID: 'PAID'
 } as const
 
 export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus]
-
-
-export const PaymentMethod = {
-  COD: 'COD'
-} as const
-
-export type PaymentMethod = (typeof PaymentMethod)[keyof typeof PaymentMethod]

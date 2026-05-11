@@ -11,8 +11,9 @@ router.post(
   "/",
   checkAuth(Role.CUSTOMER),
   validateRequest(orderValidation.createOrderSchema),
-  orderController.placeOrder,
+  orderController.initiateOrder,
 );
+router.post("/:id/place", checkAuth(Role.CUSTOMER), orderController.placeOrder);
 router.get(
   "/",
   checkAuth(Role.ADMIN, Role.CUSTOMER, Role.SELLER),

@@ -7,5 +7,5 @@ export interface ICreateOrderPayload {
 }
 
 export interface IUpdateOrderStatusPayload {
-  status: "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED";
+  status: "PROCESSING" | "SHIPPED" | "DELIVERED";
 }

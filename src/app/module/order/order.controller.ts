@@ -5,13 +5,28 @@ import { sendResponse } from "../../shared/sendResponse";
 import status from "http-status";
 import { IQueryParams } from "../../interfaces/query.interface";
 
-const placeOrder = catchAsync(async (req: Request, res: Response) => {
-  const result = await orderService.placeOrder(req.user.userId, req.body);
+const initiateOrder = catchAsync(async (req: Request, res: Response) => {
+  const result = await orderService.initiateOrder(req.user.userId, req.body);
 
   sendResponse(res, {
     httpStatusCode: status.CREATED,
     success: true,
-    message: "Order placed successfully",
+    message: "Order initiated successfully",
+    data: result,
+  });
+});
+
+const placeOrder = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const result = await orderService.placeOrderWithPayment(
+    req.user.userId,
+    id as string,
+  );
+
+  sendResponse(res, {
+    httpStatusCode: status.OK,
+    success: true,
+    message: "Checkout session created successfully",
     data: result,
   });
 });
@@ -77,6 +92,7 @@ const updateOrderStatus = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const orderController = {
+  initiateOrder,
   placeOrder,
   getOrders,
   getOrderById,
