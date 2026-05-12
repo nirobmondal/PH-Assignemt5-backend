@@ -14,6 +14,7 @@ router.post(
   reviewController.createReview,
 );
 router.get("/medicine/:medicineId", reviewController.getReviewsByMedicineId);
+router.get("/", reviewController.getAllReviews);
 router.patch(
   "/:id",
   checkAuth(Role.CUSTOMER, Role.ADMIN),

@@ -59,6 +59,14 @@ const orderInclude = {
       },
     },
   },
+  payment: {
+    select: {
+      transactionId: true,
+      stripeEventId: true,
+      paymentGatewayData: true,
+      createdAt: true,
+    },
+  },
 };
 
 const validateOrderStatusTransition = (

@@ -31,6 +31,17 @@ const getReviewsByMedicineId = catchAsync(
   },
 );
 
+const getAllReviews = catchAsync(async (req: Request, res: Response) => {
+  const result = await reviewService.getAllReviews();
+
+  sendResponse(res, {
+    httpStatusCode: status.OK,
+    success: true,
+    message: "Reviews fetched successfully",
+    data: result,
+  });
+});
+
 const updateReview = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
   const result = await reviewService.updateReview(
@@ -67,6 +78,7 @@ const deleteReview = catchAsync(async (req: Request, res: Response) => {
 export const reviewController = {
   createReview,
   getReviewsByMedicineId,
+  getAllReviews,
   updateReview,
   deleteReview,
 };
