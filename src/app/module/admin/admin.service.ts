@@ -84,7 +84,7 @@ const getAllUsers = async (query: IQueryParams) => {
     filterableFields: ["role", "status"],
   })
     .include({
-      sellerProfile: {
+      seller: {
         select: {
           id: true,
           shopName: true,
