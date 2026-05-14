@@ -1,6 +1,5 @@
 import { Role } from "../../generated/prisma/enums";
 import { envVars } from "../config/env";
-import { auth } from "../lib/auth";
 import { prisma } from "../lib/prisma";
 
 export const seedAdmin = async () => {
@@ -16,20 +15,12 @@ export const seedAdmin = async () => {
       return;
     }
 
-    const adminUser = await auth.api.signUpEmail({
-      body: {
+    const adminData = await prisma.user.create({
+      data: {
+        name: "Admin",
         email: envVars.ADMIN_EMAIL,
         password: envVars.ADMIN_PASSWORD,
-        name: "Admin",
         role: Role.ADMIN,
-      },
-    });
-
-    const adminData = await prisma.user.update({
-      where: {
-        id: adminUser.user.id,
-      },
-      data: {
         emailVerified: true,
       },
     });

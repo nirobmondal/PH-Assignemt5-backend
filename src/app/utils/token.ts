@@ -46,21 +46,9 @@ const setRefreshTokenCookie = (res: Response, token: string) => {
   });
 };
 
-const setBetterAuthSessionCookie = (res: Response, token: string) => {
-  CookieUtils.setCookie(res, "better-auth.session_token", token, {
-    httpOnly: true,
-    secure: true,
-    sameSite: "none",
-    path: "/",
-    //1 day
-    maxAge: 60 * 60 * 24 * 1000,
-  });
-};
-
 export const tokenUtils = {
   getAccessToken,
   getRefreshToken,
   setAccessTokenCookie,
   setRefreshTokenCookie,
-  setBetterAuthSessionCookie,
 };

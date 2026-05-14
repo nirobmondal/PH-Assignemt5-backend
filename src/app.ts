@@ -9,8 +9,6 @@ import { envVars } from "./app/config/env";
 import { globalErrorHandler } from "./app/middleware/globalErrorHandler";
 import { notFound } from "./app/middleware/notFound";
 import { indexRoutes } from "./app/routes";
-import { auth } from "./app/lib/auth";
-import { toNodeHandler } from "better-auth/node";
 import { PaymentController } from "./app/module/payment/payment.controller";
 import { orderService } from "./app/module/order/order.service";
 
@@ -51,9 +49,6 @@ app.use(cookieParser());
 app.get("/", async (req: Request, res: Response) => {
   res.send("Welcome to Niramoy MedicineStore!");
 });
-
-// better-auth routes
-app.use("/api/auth", toNodeHandler(auth));
 
 // custom routes
 app.use("/api/v1", indexRoutes);

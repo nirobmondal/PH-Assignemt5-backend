@@ -3,8 +3,8 @@ import { Role, UserStatus } from "../../../generated/prisma/enums";
 import { envVars } from "../../config/env";
 import AppError from "../../errorHelpers/AppError";
 import { IRequestUser } from "../../interfaces/requestUser.interface";
-import { auth } from "../../lib/auth";
 import { prisma } from "../../lib/prisma";
+import { sendEmail } from "../../utils/email";
 import { jwtUtils } from "../../utils/jwt";
 import { tokenUtils } from "../../utils/token";
 import {
@@ -14,41 +14,80 @@ import {
   IUpdateMePayload,
 } from "./auth.interface";
 import { StatusCodes } from "http-status-codes";
+import bcrypt from "bcrypt";
+
+const generateOtp = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
+const getOtpExpiry = (minutes: number) => {
+  return new Date(Date.now() + minutes * 60 * 1000);
+};
+
+const sanitizeUser = (user: any) => {
+  const {
+    password,
+    emailVerificationOtp,
+    otpExpiresAt,
+    resetPasswordOtp,
+    resetOtpExpiresAt,
+    ...rest
+  } = user;
+  return rest;
+};
 
 const registerCustomer = async (payload: IRegisterCustomerPayload) => {
   const { name, email, password } = payload;
 
-  const data = await auth.api.signUpEmail({
-    body: {
-      name,
-      email,
-      password,
-    },
+  const isUserExists = await prisma.user.findUnique({
+    where: { email },
   });
 
-  if (!data.user) {
-    throw new AppError(StatusCodes.BAD_REQUEST, "Failed to register customer");
+  if (isUserExists) {
+    throw new AppError(StatusCodes.CONFLICT, "User already exists");
   }
 
+  const hashedPassword = await bcrypt.hash(password, 10);
+  const otp = generateOtp();
+  const otpExpiresAt = getOtpExpiry(5);
+
   try {
-    await prisma.$transaction(async (tx) => {
-      await tx.cart.create({
+    const user = await prisma.$transaction(async (tx) => {
+      const createdUser = await tx.user.create({
         data: {
-          userId: data.user.id,
+          name,
+          email,
+          password: hashedPassword,
+          emailVerificationOtp: otp,
+          otpExpiresAt,
         },
       });
+
+      await tx.cart.create({
+        data: {
+          userId: createdUser.id,
+        },
+      });
+
+      return createdUser;
     });
 
-    return {
-      ...data,
-    };
-  } catch (error) {
-    console.log("Transaction error : ", error);
-    await prisma.user.delete({
-      where: {
-        id: data.user.id,
+    await sendEmail({
+      to: email,
+      subject: "Verify your email",
+      templateName: "otp",
+      templateData: {
+        name,
+        otp,
+        title: "Email Verification OTP",
+        purpose: "verify your email",
+        expiresIn: "5 minutes",
       },
     });
+
+    return sanitizeUser(user);
+  } catch (error) {
+    console.log("Transaction error : ", error);
     throw error;
   }
 };
@@ -56,37 +95,48 @@ const registerCustomer = async (payload: IRegisterCustomerPayload) => {
 const loginUser = async (payload: ILoginUserPayload) => {
   const { email, password } = payload;
 
-  const data = await auth.api.signInEmail({
-    body: {
-      email,
-      password,
-    },
+  const user = await prisma.user.findUnique({
+    where: { email },
   });
 
-  if (data.user.status === UserStatus.BANNED) {
+  if (!user) {
+    throw new AppError(StatusCodes.NOT_FOUND, "User not found");
+  }
+
+  if (!user.emailVerified) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "Email not verified");
+  }
+
+  if (user.status === UserStatus.BANNED) {
     throw new AppError(StatusCodes.FORBIDDEN, "User is banned");
   }
 
+  const isPasswordMatched = await bcrypt.compare(password, user.password);
+
+  if (!isPasswordMatched) {
+    throw new AppError(StatusCodes.UNAUTHORIZED, "Invalid credentials");
+  }
+
   const accessToken = tokenUtils.getAccessToken({
-    userId: data.user.id,
-    role: data.user.role,
-    name: data.user.name,
-    email: data.user.email,
-    status: data.user.status,
-    emailVerified: data.user.emailVerified,
+    userId: user.id,
+    role: user.role,
+    name: user.name,
+    email: user.email,
+    status: user.status,
+    emailVerified: user.emailVerified,
   });
 
   const refreshToken = tokenUtils.getRefreshToken({
-    userId: data.user.id,
-    role: data.user.role,
-    name: data.user.name,
-    email: data.user.email,
-    status: data.user.status,
-    emailVerified: data.user.emailVerified,
+    userId: user.id,
+    role: user.role,
+    name: user.name,
+    email: user.email,
+    status: user.status,
+    emailVerified: user.emailVerified,
   });
 
   return {
-    ...data,
+    user: sanitizeUser(user),
     accessToken,
     refreshToken,
   };
@@ -189,24 +239,7 @@ const updateMe = async (user: IRequestUser, payload: IUpdateMePayload) => {
   return updatedUser;
 };
 
-const getNewToken = async (refreshToken: string, sessionToken?: string) => {
-  if (!sessionToken) {
-    throw new AppError(StatusCodes.UNAUTHORIZED, "Session token is missing");
-  }
-
-  const isSessionTokenExists = await prisma.session.findUnique({
-    where: {
-      token: sessionToken,
-    },
-    include: {
-      user: true,
-    },
-  });
-
-  if (!isSessionTokenExists) {
-    throw new AppError(StatusCodes.UNAUTHORIZED, "Invalid session token");
-  }
-
+const getNewToken = async (refreshToken: string) => {
   const verifiedRefreshToken = jwtUtils.verifyToken(
     refreshToken,
     envVars.REFRESH_TOKEN_SECRET,
@@ -218,126 +251,111 @@ const getNewToken = async (refreshToken: string, sessionToken?: string) => {
 
   const data = verifiedRefreshToken.data as JwtPayload;
 
+  const user = await prisma.user.findUnique({
+    where: { id: data.userId },
+  });
+
+  if (!user) {
+    throw new AppError(StatusCodes.UNAUTHORIZED, "User not found");
+  }
+
+  if (!user.emailVerified) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "Email not verified");
+  }
+
+  if (user.status === UserStatus.BANNED) {
+    throw new AppError(StatusCodes.FORBIDDEN, "User is banned");
+  }
+
   const newAccessToken = tokenUtils.getAccessToken({
-    userId: data.userId,
-    role: data.role,
-    name: data.name,
-    email: data.email,
-    status: data.status,
-    emailVerified: data.emailVerified,
+    userId: user.id,
+    role: user.role,
+    name: user.name,
+    email: user.email,
+    status: user.status,
+    emailVerified: user.emailVerified,
   });
 
   const newRefreshToken = tokenUtils.getRefreshToken({
-    userId: data.userId,
-    role: data.role,
-    name: data.name,
-    email: data.email,
-    status: data.status,
-    emailVerified: data.emailVerified,
-  });
-
-  const { token } = await prisma.session.update({
-    where: {
-      token: sessionToken,
-    },
-    data: {
-      token: sessionToken,
-      expiresAt: new Date(Date.now() + 60 * 60 * 24 * 1000),
-      updatedAt: new Date(),
-    },
+    userId: user.id,
+    role: user.role,
+    name: user.name,
+    email: user.email,
+    status: user.status,
+    emailVerified: user.emailVerified,
   });
 
   return {
     accessToken: newAccessToken,
     refreshToken: newRefreshToken,
-    sessionToken: token,
   };
 };
 
 const changePassword = async (
   payload: IChangePasswordPayload,
-  sessionToken?: string,
+  user: IRequestUser,
 ) => {
-  if (!sessionToken) {
-    throw new AppError(StatusCodes.UNAUTHORIZED, "Session token is missing");
-  }
-
-  const session = await auth.api.getSession({
-    headers: new Headers({
-      Authorization: `Bearer ${sessionToken}`,
-    }),
+  const existingUser = await prisma.user.findUnique({
+    where: { id: user.userId },
   });
 
-  if (!session) {
-    throw new AppError(StatusCodes.UNAUTHORIZED, "Invalid session token");
+  if (!existingUser) {
+    throw new AppError(StatusCodes.NOT_FOUND, "User not found");
   }
 
   const { currentPassword, newPassword } = payload;
+  const isPasswordMatched = await bcrypt.compare(
+    currentPassword,
+    existingUser.password,
+  );
 
-  const result = await auth.api.changePassword({
-    body: {
-      currentPassword,
-      newPassword,
-      revokeOtherSessions: true,
+  if (!isPasswordMatched) {
+    throw new AppError(StatusCodes.UNAUTHORIZED, "Invalid credentials");
+  }
+
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+  await prisma.user.update({
+    where: { id: existingUser.id },
+    data: {
+      password: hashedPassword,
     },
-    headers: new Headers({
-      Authorization: `Bearer ${sessionToken}`,
-    }),
   });
-
-  const accessToken = tokenUtils.getAccessToken({
-    userId: session.user.id,
-    role: session.user.role,
-    name: session.user.name,
-    email: session.user.email,
-    status: session.user.status,
-    emailVerified: session.user.emailVerified,
-  });
-
-  const refreshToken = tokenUtils.getRefreshToken({
-    userId: session.user.id,
-    role: session.user.role,
-    name: session.user.name,
-    email: session.user.email,
-    status: session.user.status,
-    emailVerified: session.user.emailVerified,
-  });
-
-  return {
-    ...result,
-    accessToken,
-    refreshToken,
-  };
 };
 
-const logoutUser = async (sessionToken: string) => {
-  const result = await auth.api.signOut({
-    headers: new Headers({
-      Authorization: `Bearer ${sessionToken}`,
-    }),
-  });
-
-  return result;
+const logoutUser = async () => {
+  return { success: true };
 };
 
 const verifyEmail = async (email: string, otp: string) => {
-  const result = await auth.api.verifyEmailOTP({
-    body: {
-      email,
-      otp,
-    },
+  const user = await prisma.user.findUnique({
+    where: { email },
   });
 
-  if (result.status && !result.user.emailVerified) {
-    await prisma.user.update({
-      where: {
-        email,
-      },
-      data: {
-        emailVerified: true,
-      },
-    });
+  if (!user) {
+    throw new AppError(StatusCodes.NOT_FOUND, "User not found");
   }
+
+  if (!user.emailVerificationOtp || !user.otpExpiresAt) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "OTP is missing");
+  }
+
+  if (user.emailVerificationOtp !== otp) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "Invalid OTP");
+  }
+
+  if (user.otpExpiresAt < new Date()) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "OTP expired");
+  }
+
+  await prisma.user.update({
+    where: { email },
+    data: {
+      emailVerified: true,
+      emailVerificationOtp: null,
+      otpExpiresAt: null,
+    },
+  });
 };
 
 const forgetPassword = async (email: string) => {
@@ -355,9 +373,31 @@ const forgetPassword = async (email: string) => {
     throw new AppError(StatusCodes.BAD_REQUEST, "Email not verified");
   }
 
-  await auth.api.requestPasswordResetEmailOTP({
-    body: {
-      email,
+  if (isUserExist.status === UserStatus.BANNED) {
+    throw new AppError(StatusCodes.FORBIDDEN, "User is banned");
+  }
+
+  const otp = generateOtp();
+  const otpExpiresAt = getOtpExpiry(5);
+
+  await prisma.user.update({
+    where: { email },
+    data: {
+      resetPasswordOtp: otp,
+      resetOtpExpiresAt: otpExpiresAt,
+    },
+  });
+
+  await sendEmail({
+    to: email,
+    subject: "Reset your password",
+    templateName: "otp",
+    templateData: {
+      name: isUserExist.name,
+      otp,
+      title: "Password Reset OTP",
+      purpose: "reset your password",
+      expiresIn: "5 minutes",
     },
   });
 };
@@ -385,17 +425,26 @@ const resetPassword = async (
     throw new AppError(StatusCodes.NOT_FOUND, "User is banned");
   }
 
-  await auth.api.resetPasswordEmailOTP({
-    body: {
-      email,
-      otp,
-      password: newPassword,
-    },
-  });
+  if (!isUserExist.resetPasswordOtp || !isUserExist.resetOtpExpiresAt) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "OTP is missing");
+  }
 
-  await prisma.session.deleteMany({
-    where: {
-      userId: isUserExist.id,
+  if (isUserExist.resetPasswordOtp !== otp) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "Invalid OTP");
+  }
+
+  if (isUserExist.resetOtpExpiresAt < new Date()) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "OTP expired");
+  }
+
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+  await prisma.user.update({
+    where: { id: isUserExist.id },
+    data: {
+      password: hashedPassword,
+      resetPasswordOtp: null,
+      resetOtpExpiresAt: null,
     },
   });
 };
@@ -440,24 +489,6 @@ const googleLoginSuccess = async (session: Record<string, any>) => {
   };
 };
 
-const verifyOauthCode = async (code: string) => {
-  const oauthCode = await prisma.oAuthCode.findUnique({
-    where: {
-      code,
-    },
-  });
-
-  if (!oauthCode) {
-    throw new AppError(StatusCodes.NOT_FOUND, "OAuth code not found");
-  }
-
-  if (oauthCode.expiresAt < new Date()) {
-    throw new AppError(StatusCodes.BAD_REQUEST, "OAuth code expired");
-  }
-
-  return oauthCode;
-};
-
 export const authService = {
   registerCustomer,
   loginUser,
@@ -470,5 +501,4 @@ export const authService = {
   forgetPassword,
   resetPassword,
   googleLoginSuccess,
-  verifyOauthCode,
 };

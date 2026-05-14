@@ -386,14 +386,11 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 export const ModelName = {
   User: 'User',
   Session: 'Session',
-  Account: 'Account',
-  Verification: 'Verification',
   Cart: 'Cart',
   CartItem: 'CartItem',
   Category: 'Category',
   Manufacturer: 'Manufacturer',
   Medicine: 'Medicine',
-  OAuthCode: 'OAuthCode',
   Order: 'Order',
   OrderItem: 'OrderItem',
   Payment: 'Payment',
@@ -415,7 +412,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "cart" | "cartItem" | "category" | "manufacturer" | "medicine" | "oAuthCode" | "order" | "orderItem" | "payment" | "review" | "seller" | "sellerOrder"
+    modelProps: "user" | "session" | "cart" | "cartItem" | "category" | "manufacturer" | "medicine" | "order" | "orderItem" | "payment" | "review" | "seller" | "sellerOrder"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -564,154 +561,6 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.SessionCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.SessionCountAggregateOutputType> | number
-        }
-      }
-    }
-    Account: {
-      payload: Prisma.$AccountPayload<ExtArgs>
-      fields: Prisma.AccountFieldRefs
-      operations: {
-        findUnique: {
-          args: Prisma.AccountFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AccountPayload> | null
-        }
-        findUniqueOrThrow: {
-          args: Prisma.AccountFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AccountPayload>
-        }
-        findFirst: {
-          args: Prisma.AccountFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AccountPayload> | null
-        }
-        findFirstOrThrow: {
-          args: Prisma.AccountFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AccountPayload>
-        }
-        findMany: {
-          args: Prisma.AccountFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AccountPayload>[]
-        }
-        create: {
-          args: Prisma.AccountCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AccountPayload>
-        }
-        createMany: {
-          args: Prisma.AccountCreateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        createManyAndReturn: {
-          args: Prisma.AccountCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AccountPayload>[]
-        }
-        delete: {
-          args: Prisma.AccountDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AccountPayload>
-        }
-        update: {
-          args: Prisma.AccountUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AccountPayload>
-        }
-        deleteMany: {
-          args: Prisma.AccountDeleteManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateMany: {
-          args: Prisma.AccountUpdateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateManyAndReturn: {
-          args: Prisma.AccountUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AccountPayload>[]
-        }
-        upsert: {
-          args: Prisma.AccountUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AccountPayload>
-        }
-        aggregate: {
-          args: Prisma.AccountAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateAccount>
-        }
-        groupBy: {
-          args: Prisma.AccountGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AccountGroupByOutputType>[]
-        }
-        count: {
-          args: Prisma.AccountCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AccountCountAggregateOutputType> | number
-        }
-      }
-    }
-    Verification: {
-      payload: Prisma.$VerificationPayload<ExtArgs>
-      fields: Prisma.VerificationFieldRefs
-      operations: {
-        findUnique: {
-          args: Prisma.VerificationFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$VerificationPayload> | null
-        }
-        findUniqueOrThrow: {
-          args: Prisma.VerificationFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$VerificationPayload>
-        }
-        findFirst: {
-          args: Prisma.VerificationFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$VerificationPayload> | null
-        }
-        findFirstOrThrow: {
-          args: Prisma.VerificationFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$VerificationPayload>
-        }
-        findMany: {
-          args: Prisma.VerificationFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$VerificationPayload>[]
-        }
-        create: {
-          args: Prisma.VerificationCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$VerificationPayload>
-        }
-        createMany: {
-          args: Prisma.VerificationCreateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        createManyAndReturn: {
-          args: Prisma.VerificationCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$VerificationPayload>[]
-        }
-        delete: {
-          args: Prisma.VerificationDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$VerificationPayload>
-        }
-        update: {
-          args: Prisma.VerificationUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$VerificationPayload>
-        }
-        deleteMany: {
-          args: Prisma.VerificationDeleteManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateMany: {
-          args: Prisma.VerificationUpdateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateManyAndReturn: {
-          args: Prisma.VerificationUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$VerificationPayload>[]
-        }
-        upsert: {
-          args: Prisma.VerificationUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$VerificationPayload>
-        }
-        aggregate: {
-          args: Prisma.VerificationAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateVerification>
-        }
-        groupBy: {
-          args: Prisma.VerificationGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.VerificationGroupByOutputType>[]
-        }
-        count: {
-          args: Prisma.VerificationCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.VerificationCountAggregateOutputType> | number
         }
       }
     }
@@ -1082,80 +931,6 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.MedicineCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.MedicineCountAggregateOutputType> | number
-        }
-      }
-    }
-    OAuthCode: {
-      payload: Prisma.$OAuthCodePayload<ExtArgs>
-      fields: Prisma.OAuthCodeFieldRefs
-      operations: {
-        findUnique: {
-          args: Prisma.OAuthCodeFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthCodePayload> | null
-        }
-        findUniqueOrThrow: {
-          args: Prisma.OAuthCodeFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthCodePayload>
-        }
-        findFirst: {
-          args: Prisma.OAuthCodeFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthCodePayload> | null
-        }
-        findFirstOrThrow: {
-          args: Prisma.OAuthCodeFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthCodePayload>
-        }
-        findMany: {
-          args: Prisma.OAuthCodeFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthCodePayload>[]
-        }
-        create: {
-          args: Prisma.OAuthCodeCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthCodePayload>
-        }
-        createMany: {
-          args: Prisma.OAuthCodeCreateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        createManyAndReturn: {
-          args: Prisma.OAuthCodeCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthCodePayload>[]
-        }
-        delete: {
-          args: Prisma.OAuthCodeDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthCodePayload>
-        }
-        update: {
-          args: Prisma.OAuthCodeUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthCodePayload>
-        }
-        deleteMany: {
-          args: Prisma.OAuthCodeDeleteManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateMany: {
-          args: Prisma.OAuthCodeUpdateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateManyAndReturn: {
-          args: Prisma.OAuthCodeUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthCodePayload>[]
-        }
-        upsert: {
-          args: Prisma.OAuthCodeUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthCodePayload>
-        }
-        aggregate: {
-          args: Prisma.OAuthCodeAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateOAuthCode>
-        }
-        groupBy: {
-          args: Prisma.OAuthCodeGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.OAuthCodeGroupByOutputType>[]
-        }
-        count: {
-          args: Prisma.OAuthCodeCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.OAuthCodeCountAggregateOutputType> | number
         }
       }
     }
@@ -1645,14 +1420,20 @@ export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof
 export const UserScalarFieldEnum = {
   id: 'id',
   name: 'name',
+  password: 'password',
   email: 'email',
+  googleId: 'googleId',
   emailVerified: 'emailVerified',
   image: 'image',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
   phone: 'phone',
   role: 'role',
-  status: 'status'
+  status: 'status',
+  emailVerificationOtp: 'emailVerificationOtp',
+  otpExpiresAt: 'otpExpiresAt',
+  resetPasswordOtp: 'resetPasswordOtp',
+  resetOtpExpiresAt: 'resetOtpExpiresAt'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
@@ -1660,47 +1441,14 @@ export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof User
 
 export const SessionScalarFieldEnum = {
   id: 'id',
-  expiresAt: 'expiresAt',
-  token: 'token',
+  accessToken: 'accessToken',
+  refreshToken: 'refreshToken',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
-  ipAddress: 'ipAddress',
-  userAgent: 'userAgent',
   userId: 'userId'
 } as const
 
 export type SessionScalarFieldEnum = (typeof SessionScalarFieldEnum)[keyof typeof SessionScalarFieldEnum]
-
-
-export const AccountScalarFieldEnum = {
-  id: 'id',
-  accountId: 'accountId',
-  providerId: 'providerId',
-  userId: 'userId',
-  accessToken: 'accessToken',
-  refreshToken: 'refreshToken',
-  idToken: 'idToken',
-  accessTokenExpiresAt: 'accessTokenExpiresAt',
-  refreshTokenExpiresAt: 'refreshTokenExpiresAt',
-  scope: 'scope',
-  password: 'password',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type AccountScalarFieldEnum = (typeof AccountScalarFieldEnum)[keyof typeof AccountScalarFieldEnum]
-
-
-export const VerificationScalarFieldEnum = {
-  id: 'id',
-  identifier: 'identifier',
-  value: 'value',
-  expiresAt: 'expiresAt',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type VerificationScalarFieldEnum = (typeof VerificationScalarFieldEnum)[keyof typeof VerificationScalarFieldEnum]
 
 
 export const CartScalarFieldEnum = {
@@ -1770,20 +1518,6 @@ export const MedicineScalarFieldEnum = {
 } as const
 
 export type MedicineScalarFieldEnum = (typeof MedicineScalarFieldEnum)[keyof typeof MedicineScalarFieldEnum]
-
-
-export const OAuthCodeScalarFieldEnum = {
-  id: 'id',
-  code: 'code',
-  userId: 'userId',
-  token: 'token',
-  accessToken: 'accessToken',
-  refreshToken: 'refreshToken',
-  expiresAt: 'expiresAt',
-  createdAt: 'createdAt'
-} as const
-
-export type OAuthCodeScalarFieldEnum = (typeof OAuthCodeScalarFieldEnum)[keyof typeof OAuthCodeScalarFieldEnum]
 
 
 export const OrderScalarFieldEnum = {
@@ -2159,14 +1893,11 @@ export type PrismaClientOptions = ({
 export type GlobalOmitConfig = {
   user?: Prisma.UserOmit
   session?: Prisma.SessionOmit
-  account?: Prisma.AccountOmit
-  verification?: Prisma.VerificationOmit
   cart?: Prisma.CartOmit
   cartItem?: Prisma.CartItemOmit
   category?: Prisma.CategoryOmit
   manufacturer?: Prisma.ManufacturerOmit
   medicine?: Prisma.MedicineOmit
-  oAuthCode?: Prisma.OAuthCodeOmit
   order?: Prisma.OrderOmit
   orderItem?: Prisma.OrderItemOmit
   payment?: Prisma.PaymentOmit

@@ -53,14 +53,11 @@ export const AnyNull = runtime.AnyNull
 export const ModelName = {
   User: 'User',
   Session: 'Session',
-  Account: 'Account',
-  Verification: 'Verification',
   Cart: 'Cart',
   CartItem: 'CartItem',
   Category: 'Category',
   Manufacturer: 'Manufacturer',
   Medicine: 'Medicine',
-  OAuthCode: 'OAuthCode',
   Order: 'Order',
   OrderItem: 'OrderItem',
   Payment: 'Payment',
@@ -88,14 +85,20 @@ export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof
 export const UserScalarFieldEnum = {
   id: 'id',
   name: 'name',
+  password: 'password',
   email: 'email',
+  googleId: 'googleId',
   emailVerified: 'emailVerified',
   image: 'image',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
   phone: 'phone',
   role: 'role',
-  status: 'status'
+  status: 'status',
+  emailVerificationOtp: 'emailVerificationOtp',
+  otpExpiresAt: 'otpExpiresAt',
+  resetPasswordOtp: 'resetPasswordOtp',
+  resetOtpExpiresAt: 'resetOtpExpiresAt'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
@@ -103,47 +106,14 @@ export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof User
 
 export const SessionScalarFieldEnum = {
   id: 'id',
-  expiresAt: 'expiresAt',
-  token: 'token',
+  accessToken: 'accessToken',
+  refreshToken: 'refreshToken',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
-  ipAddress: 'ipAddress',
-  userAgent: 'userAgent',
   userId: 'userId'
 } as const
 
 export type SessionScalarFieldEnum = (typeof SessionScalarFieldEnum)[keyof typeof SessionScalarFieldEnum]
-
-
-export const AccountScalarFieldEnum = {
-  id: 'id',
-  accountId: 'accountId',
-  providerId: 'providerId',
-  userId: 'userId',
-  accessToken: 'accessToken',
-  refreshToken: 'refreshToken',
-  idToken: 'idToken',
-  accessTokenExpiresAt: 'accessTokenExpiresAt',
-  refreshTokenExpiresAt: 'refreshTokenExpiresAt',
-  scope: 'scope',
-  password: 'password',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type AccountScalarFieldEnum = (typeof AccountScalarFieldEnum)[keyof typeof AccountScalarFieldEnum]
-
-
-export const VerificationScalarFieldEnum = {
-  id: 'id',
-  identifier: 'identifier',
-  value: 'value',
-  expiresAt: 'expiresAt',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type VerificationScalarFieldEnum = (typeof VerificationScalarFieldEnum)[keyof typeof VerificationScalarFieldEnum]
 
 
 export const CartScalarFieldEnum = {
@@ -213,20 +183,6 @@ export const MedicineScalarFieldEnum = {
 } as const
 
 export type MedicineScalarFieldEnum = (typeof MedicineScalarFieldEnum)[keyof typeof MedicineScalarFieldEnum]
-
-
-export const OAuthCodeScalarFieldEnum = {
-  id: 'id',
-  code: 'code',
-  userId: 'userId',
-  token: 'token',
-  accessToken: 'accessToken',
-  refreshToken: 'refreshToken',
-  expiresAt: 'expiresAt',
-  createdAt: 'createdAt'
-} as const
-
-export type OAuthCodeScalarFieldEnum = (typeof OAuthCodeScalarFieldEnum)[keyof typeof OAuthCodeScalarFieldEnum]
 
 
 export const OrderScalarFieldEnum = {
