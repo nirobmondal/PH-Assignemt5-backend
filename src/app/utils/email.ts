@@ -6,11 +6,6 @@ import { envVars } from "../config/env";
 import AppError from "../errorHelpers/AppError";
 // logger ইম্পোর্ট সরিয়ে দেওয়া হয়েছে
 
-console.log("host:", envVars.EMAIL_SENDER.SMTP_HOST);
-console.log("port:", envVars.EMAIL_SENDER.SMTP_PORT);
-console.log("user:", envVars.EMAIL_SENDER.SMTP_USER);
-console.log("from:", envVars.EMAIL_SENDER.SMTP_FROM);
-
 const transporter = nodemailer.createTransport({
   host: envVars.EMAIL_SENDER.SMTP_HOST,
   secure: Number(envVars.EMAIL_SENDER.SMTP_PORT) === 465,
@@ -22,6 +17,11 @@ const transporter = nodemailer.createTransport({
 });
 
 transporter.verify((error) => {
+  console.log("host:", envVars.EMAIL_SENDER.SMTP_HOST);
+  console.log("port:", envVars.EMAIL_SENDER.SMTP_PORT);
+  console.log("user:", envVars.EMAIL_SENDER.SMTP_USER);
+  console.log("from:", envVars.EMAIL_SENDER.SMTP_FROM);
+
   if (error) {
     // Render এ প্রাথমিক কানেকশন এরর দেখার জন্য
     console.error("❌ Nodemailer config error [Verification Failed]:", error);
