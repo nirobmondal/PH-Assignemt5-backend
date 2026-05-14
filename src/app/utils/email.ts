@@ -4,6 +4,7 @@ import nodemailer from "nodemailer";
 import path from "path";
 import { envVars } from "../config/env";
 import AppError from "../errorHelpers/AppError";
+import SMTPTransport from "nodemailer/lib/smtp-transport";
 // logger ইম্পোর্ট সরিয়ে দেওয়া হয়েছে
 
 const transporter = nodemailer.createTransport({
@@ -14,7 +15,8 @@ const transporter = nodemailer.createTransport({
     pass: envVars.EMAIL_SENDER.SMTP_PASS,
   },
   port: Number(envVars.EMAIL_SENDER.SMTP_PORT),
-});
+  family: 4, // IPv4 ব্যবহার করার জন্য
+} as SMTPTransport.Options);
 
 transporter.verify((error) => {
   console.log("host:", envVars.EMAIL_SENDER.SMTP_HOST);
