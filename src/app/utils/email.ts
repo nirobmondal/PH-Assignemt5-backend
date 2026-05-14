@@ -7,7 +7,7 @@ import AppError from "../errorHelpers/AppError";
 
 const transporter = nodemailer.createTransport({
   host: envVars.EMAIL_SENDER.SMTP_HOST,
-  secure: false,
+  secure: true,
   auth: {
     user: envVars.EMAIL_SENDER.SMTP_USER,
     pass: envVars.EMAIL_SENDER.SMTP_PASS,
