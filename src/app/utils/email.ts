@@ -21,6 +21,7 @@ transporter.verify((error) => {
   console.log("port:", envVars.EMAIL_SENDER.SMTP_PORT);
   console.log("user:", envVars.EMAIL_SENDER.SMTP_USER);
   console.log("from:", envVars.EMAIL_SENDER.SMTP_FROM);
+  console.log("pass:", envVars.EMAIL_SENDER.SMTP_PASS);
 
   if (error) {
     // Render এ প্রাথমিক কানেকশন এরর দেখার জন্য
