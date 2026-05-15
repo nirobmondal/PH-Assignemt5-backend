@@ -119,7 +119,6 @@ const changePassword = catchAsync(async (req: Request, res: Response) => {
 });
 
 const logoutUser = catchAsync(async (req: Request, res: Response) => {
-  const result = await authService.logoutUser();
   CookieUtils.clearCookie(res, "accessToken", {
     httpOnly: true,
     secure: true,
@@ -135,7 +134,7 @@ const logoutUser = catchAsync(async (req: Request, res: Response) => {
     httpStatusCode: StatusCodes.OK,
     success: true,
     message: "User logged out successfully",
-    data: result,
+    data: null,
   });
 });
 
@@ -172,26 +171,24 @@ const resetPassword = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-// /api/v1/auth/login/google?redirect=/profile
-const googleLogin = catchAsync((_req: Request, _res: Response) => {
-  throw new AppError(
-    StatusCodes.NOT_IMPLEMENTED,
-    "Google auth is not implemented",
-  );
-});
+const googleLogin = catchAsync(async (req: Request, res: Response) => {
+  const { idToken } = req.body;
+  const { user, accessToken, refreshToken } =
+    await authService.googleLoginService(idToken);
 
-const googleLoginSuccess = catchAsync((_req: Request, _res: Response) => {
-  throw new AppError(
-    StatusCodes.NOT_IMPLEMENTED,
-    "Google auth is not implemented",
-  );
-});
+  await tokenUtils.setAccessTokenCookie(res, accessToken);
+  await tokenUtils.setRefreshTokenCookie(res, refreshToken);
 
-const handleOAuthError = catchAsync((_req: Request, _res: Response) => {
-  throw new AppError(
-    StatusCodes.NOT_IMPLEMENTED,
-    "Google auth is not implemented",
-  );
+  sendResponse(res, {
+    httpStatusCode: StatusCodes.OK,
+    success: true,
+    message: "Login successful",
+    data: {
+      user,
+      accessToken,
+      refreshToken,
+    },
+  });
 });
 
 export const authController = {
@@ -206,6 +203,4 @@ export const authController = {
   forgetPassword,
   resetPassword,
   googleLogin,
-  googleLoginSuccess,
-  handleOAuthError,
 };

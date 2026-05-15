@@ -47,10 +47,10 @@ export { Prisma }
  */
 export type User = Prisma.UserModel
 /**
- * Model Session
+ * Model AuthProvider
  * 
  */
-export type Session = Prisma.SessionModel
+export type AuthProvider = Prisma.AuthProviderModel
 /**
  * Model Cart
  * 

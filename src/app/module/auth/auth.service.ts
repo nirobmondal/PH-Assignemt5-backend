@@ -7,6 +7,7 @@ import { prisma } from "../../lib/prisma";
 import { sendEmail } from "../../utils/email";
 import { jwtUtils } from "../../utils/jwt";
 import { tokenUtils } from "../../utils/token";
+import { OAuth2Client } from "google-auth-library";
 import {
   IChangePasswordPayload,
   ILoginUserPayload,
@@ -63,6 +64,14 @@ const registerCustomer = async (payload: IRegisterCustomerPayload) => {
         },
       });
 
+      await tx.authProvider.create({
+        data: {
+          provider: "local",
+          providerId: email,
+          userId: createdUser.id,
+        },
+      });
+
       await tx.cart.create({
         data: {
           userId: createdUser.id,
@@ -103,12 +112,27 @@ const loginUser = async (payload: ILoginUserPayload) => {
     throw new AppError(StatusCodes.NOT_FOUND, "User not found");
   }
 
-  if (!user.emailVerified) {
-    throw new AppError(StatusCodes.BAD_REQUEST, "Email not verified");
-  }
-
   if (user.status === UserStatus.BANNED) {
     throw new AppError(StatusCodes.FORBIDDEN, "User is banned");
+  }
+
+  const authProvider = await prisma.authProvider.findUnique({
+    where: { userId: user.id },
+  });
+
+  if (!user.password) {
+    if (authProvider?.provider === "google") {
+      throw new AppError(
+        StatusCodes.BAD_REQUEST,
+        'This account uses Google Sign-In. Please use "Login with Google".',
+      );
+    }
+
+    throw new AppError(StatusCodes.UNAUTHORIZED, "Invalid credentials");
+  }
+
+  if (!user.emailVerified) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "Email not verified");
   }
 
   const isPasswordMatched = await bcrypt.compare(password, user.password);
@@ -303,6 +327,21 @@ const changePassword = async (
     throw new AppError(StatusCodes.NOT_FOUND, "User not found");
   }
 
+  const authProvider = await prisma.authProvider.findUnique({
+    where: { userId: existingUser.id },
+  });
+
+  if (authProvider?.provider !== "local") {
+    throw new AppError(
+      StatusCodes.BAD_REQUEST,
+      "This account uses Google Sign-In. Password change is not available.",
+    );
+  }
+
+  if (!existingUser.password) {
+    throw new AppError(StatusCodes.UNAUTHORIZED, "Invalid credentials");
+  }
+
   const { currentPassword, newPassword } = payload;
   const isPasswordMatched = await bcrypt.compare(
     currentPassword,
@@ -321,10 +360,6 @@ const changePassword = async (
       password: hashedPassword,
     },
   });
-};
-
-const logoutUser = async () => {
-  return { success: true };
 };
 
 const verifyEmail = async (email: string, otp: string) => {
@@ -367,6 +402,17 @@ const forgetPassword = async (email: string) => {
 
   if (!isUserExist) {
     throw new AppError(StatusCodes.NOT_FOUND, "User not found");
+  }
+
+  const authProvider = await prisma.authProvider.findUnique({
+    where: { userId: isUserExist.id },
+  });
+
+  if (authProvider?.provider !== "local") {
+    throw new AppError(
+      StatusCodes.BAD_REQUEST,
+      "This account uses Google Sign-In. Password reset is not available.",
+    );
   }
 
   if (!isUserExist.emailVerified) {
@@ -417,6 +463,17 @@ const resetPassword = async (
     throw new AppError(StatusCodes.NOT_FOUND, "User not found");
   }
 
+  const authProvider = await prisma.authProvider.findUnique({
+    where: { userId: isUserExist.id },
+  });
+
+  if (authProvider?.provider !== "local") {
+    throw new AppError(
+      StatusCodes.BAD_REQUEST,
+      "This account uses Google Sign-In. Password reset is not available.",
+    );
+  }
+
   if (!isUserExist.emailVerified) {
     throw new AppError(StatusCodes.BAD_REQUEST, "Email not verified");
   }
@@ -449,41 +506,130 @@ const resetPassword = async (
   });
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const googleLoginSuccess = async (session: Record<string, any>) => {
-  const isCartExists = await prisma.cart.findUnique({
-    where: {
-      userId: session.user.id,
-    },
+const client = new OAuth2Client(envVars.GOOGLE_CLIENT_ID);
+
+const googleLoginService = async (idToken: string) => {
+  const ticket = await client.verifyIdToken({
+    idToken,
+    audience: envVars.GOOGLE_CLIENT_ID,
+  });
+  const payload = ticket.getPayload();
+
+  if (!payload?.email) {
+    throw new AppError(StatusCodes.UNAUTHORIZED, "Google verification failed");
+  }
+
+  const email = payload.email;
+  const providerId = payload.sub;
+  const name = payload.name as string;
+
+  if (!providerId) {
+    throw new AppError(StatusCodes.UNAUTHORIZED, "Google verification failed");
+  }
+
+  let user = await prisma.user.findUnique({
+    where: { email },
   });
 
-  if (!isCartExists) {
+  if (!user) {
+    user = await prisma.$transaction(async (tx) => {
+      const createdUser = await tx.user.create({
+        data: {
+          email,
+          name,
+          password: null,
+          emailVerified: true,
+          role: Role.CUSTOMER,
+          image: payload.picture,
+        },
+      });
+
+      await tx.authProvider.create({
+        data: {
+          provider: "google",
+          providerId,
+          userId: createdUser.id,
+        },
+      });
+
+      await tx.cart.create({
+        data: {
+          userId: createdUser.id,
+        },
+      });
+
+      return createdUser;
+    });
+  }
+
+  if (user.status === UserStatus.BANNED) {
+    throw new AppError(StatusCodes.FORBIDDEN, "User is banned");
+  }
+
+  const authProvider = await prisma.authProvider.findUnique({
+    where: { userId: user.id },
+  });
+
+  if (!user.emailVerified) {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { emailVerified: true },
+    });
+    user = {
+      ...user,
+      emailVerified: true,
+    };
+  }
+
+  if (!authProvider) {
+    await prisma.authProvider.create({
+      data: {
+        provider: "google",
+        providerId,
+        userId: user.id,
+      },
+    });
+  } else if (authProvider.provider === "google") {
+    if (authProvider.providerId !== providerId) {
+      await prisma.authProvider.update({
+        where: { userId: user.id },
+        data: { providerId },
+      });
+    }
+  }
+
+  const cartExists = await prisma.cart.findUnique({
+    where: { userId: user.id },
+  });
+
+  if (!cartExists) {
     await prisma.cart.create({
       data: {
-        userId: session.user.id,
+        userId: user.id,
       },
     });
   }
 
   const accessToken = tokenUtils.getAccessToken({
-    userId: session.user.id,
-    role: session.user.role,
-    name: session.user.name,
-    email: session.user.email,
-    status: session.user.status,
-    emailVerified: session.user.emailVerified,
+    userId: user.id,
+    role: user.role,
+    name: user.name,
+    email: user.email,
+    status: user.status,
+    emailVerified: user.emailVerified,
   });
 
   const refreshToken = tokenUtils.getRefreshToken({
-    userId: session.user.id,
-    role: session.user.role,
-    name: session.user.name,
-    email: session.user.email,
-    status: session.user.status,
-    emailVerified: session.user.emailVerified,
+    userId: user.id,
+    role: user.role,
+    name: user.name,
+    email: user.email,
+    status: user.status,
+    emailVerified: user.emailVerified,
   });
 
   return {
+    user: sanitizeUser(user),
     accessToken,
     refreshToken,
   };
@@ -496,9 +642,8 @@ export const authService = {
   updateMe,
   getNewToken,
   changePassword,
-  logoutUser,
   verifyEmail,
   forgetPassword,
   resetPassword,
-  googleLoginSuccess,
+  googleLoginService,
 };

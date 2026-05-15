@@ -1,14 +1,12 @@
 model User {
   id            String   @id @default(uuid())
   name          String
-  password      String
+  password      String?
   email         String
-  googleId      String?  @unique
   emailVerified Boolean  @default(false)
   image         String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-  // sessions      Session[]
 
   phone  String?
   role   Role       @default(CUSTOMER)
@@ -20,10 +18,11 @@ model User {
   resetPasswordOtp  String?
   resetOtpExpiresAt DateTime?
 
-  seller  Seller?
-  cart    Cart?
-  orders  Order[]
-  reviews Review[]
+  seller        Seller?
+  cart          Cart?
+  authProviders AuthProvider?
+  orders        Order[]
+  reviews       Review[]
 
   @@unique([email])
   @@index([role])
@@ -31,17 +30,12 @@ model User {
   @@map("user")
 }
 
-// model Session {
-//   id           String   @id @default(uuid())
-//   accessToken  String
-//   refreshToken String
-//   createdAt    DateTime @default(now())
-//   updatedAt    DateTime @updatedAt
-//   userId       String
-//   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+model AuthProvider {
+  id         String @id @default(uuid())
+  provider   String
+  providerId String @unique
+  userId     String @unique
+  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-//   @@unique([refreshToken])
-//   @@unique([accessToken])
-//   @@index([userId])
-//   @@map("session")
-// }
+  @@map("auth_provider")
+}

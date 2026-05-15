@@ -4,7 +4,6 @@ import nodemailer from "nodemailer";
 import path from "path";
 import { envVars } from "../config/env";
 import AppError from "../errorHelpers/AppError";
-// logger ইম্পোর্ট সরিয়ে দেওয়া হয়েছে
 
 const transporter = nodemailer.createTransport({
   host: envVars.EMAIL_SENDER.SMTP_HOST,

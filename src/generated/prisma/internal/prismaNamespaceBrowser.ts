@@ -52,7 +52,7 @@ export const AnyNull = runtime.AnyNull
 
 export const ModelName = {
   User: 'User',
-  Session: 'Session',
+  AuthProvider: 'AuthProvider',
   Cart: 'Cart',
   CartItem: 'CartItem',
   Category: 'Category',
@@ -87,7 +87,6 @@ export const UserScalarFieldEnum = {
   name: 'name',
   password: 'password',
   email: 'email',
-  googleId: 'googleId',
   emailVerified: 'emailVerified',
   image: 'image',
   createdAt: 'createdAt',
@@ -104,16 +103,14 @@ export const UserScalarFieldEnum = {
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
 
 
-export const SessionScalarFieldEnum = {
+export const AuthProviderScalarFieldEnum = {
   id: 'id',
-  accessToken: 'accessToken',
-  refreshToken: 'refreshToken',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt',
+  provider: 'provider',
+  providerId: 'providerId',
   userId: 'userId'
 } as const
 
-export type SessionScalarFieldEnum = (typeof SessionScalarFieldEnum)[keyof typeof SessionScalarFieldEnum]
+export type AuthProviderScalarFieldEnum = (typeof AuthProviderScalarFieldEnum)[keyof typeof AuthProviderScalarFieldEnum]
 
 
 export const CartScalarFieldEnum = {

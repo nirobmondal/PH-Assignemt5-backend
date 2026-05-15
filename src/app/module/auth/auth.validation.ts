@@ -48,6 +48,10 @@ const forgetPasswordValidationSchema = z.object({
   email: z.email("Invalid email address"),
 });
 
+const googleLoginValidationSchema = z.object({
+  idToken: z.string().min(1, "Google ID token is required"),
+});
+
 const updateSellerProfileValidationSchema = z
   .object({
     shopName: z.string().trim().min(1).optional(),
@@ -78,4 +82,5 @@ export const authValidation = {
   forgetPasswordValidationSchema,
   resetPasswordValidationSchema,
   updateMeValidationSchema,
+  googleLoginValidationSchema,
 };
