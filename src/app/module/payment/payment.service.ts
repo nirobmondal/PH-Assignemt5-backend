@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import Stripe from "stripe";
 import { prisma } from "../../lib/prisma";
-import { sendEmail } from "../../utils/email";
+// import { sendEmail } from "../../utils/email";
 import { OrderStatus, PaymentStatus } from "../../../generated/prisma/enums";
 import { generateInvoicePdf } from "./payment.utils";
 import { uploadFileToCloudinary } from "../../config/cloudinary.config";
@@ -100,62 +100,62 @@ const handlerStripeWebhookEvent = async (event: Stripe.Event) => {
         }
       });
 
-      if (isPaid) {
-        const items = order.sellerOrders.flatMap((sellerOrder) =>
-          sellerOrder.items.map((item) => {
-            const unitPrice = Number(item.medicine.price);
-            return {
-              medicineName: item.medicine.name,
-              sellerShopName: sellerOrder.seller.shopName,
-              quantity: item.quantity,
-              unitPrice,
-              subtotal: Number(item.subtotal),
-            };
-          }),
-        );
-        try {
-          const pdfBuffer = await generateInvoicePdf({
-            invoiceId: payment.id,
-            transactionId: payment.transactionId,
-            customerName: order.customer.name,
-            customerEmail: order.customer.email,
-            orderId: order.id,
-            paymentDate: new Date().toISOString(),
-            items,
-            totalAmount: Number(order.totalAmount),
-          });
+      // if (isPaid) {
+      //   const items = order.sellerOrders.flatMap((sellerOrder) =>
+      //     sellerOrder.items.map((item) => {
+      //       const unitPrice = Number(item.medicine.price);
+      //       return {
+      //         medicineName: item.medicine.name,
+      //         sellerShopName: sellerOrder.seller.shopName,
+      //         quantity: item.quantity,
+      //         unitPrice,
+      //         subtotal: Number(item.subtotal),
+      //       };
+      //     }),
+      //   );
+      // try {
+      //   const pdfBuffer = await generateInvoicePdf({
+      //     invoiceId: payment.id,
+      //     transactionId: payment.transactionId,
+      //     customerName: order.customer.name,
+      //     customerEmail: order.customer.email,
+      //     orderId: order.id,
+      //     paymentDate: new Date().toISOString(),
+      //     items,
+      //     totalAmount: Number(order.totalAmount),
+      //   });
 
-          const uploadResult = await uploadFileToCloudinary(
-            pdfBuffer,
-            `invoice-${payment.id}.pdf`,
-          );
+      //   const uploadResult = await uploadFileToCloudinary(
+      //     pdfBuffer,
+      //     `invoice-${payment.id}.pdf`,
+      //   );
 
-          await sendEmail({
-            to: order.customer.email,
-            subject: "Payment Confirmation & Invoice",
-            templateName: "invoice",
-            templateData: {
-              customerName: order.customer.name,
-              orderId: order.id,
-              invoiceId: payment.id,
-              transactionId: payment.transactionId,
-              paymentDate: new Date().toLocaleDateString(),
-              invoiceUrl: uploadResult.secure_url,
-              items,
-              amount: Number(order.totalAmount),
-            },
-            attachments: [
-              {
-                filename: `Invoice-${payment.id}.pdf`,
-                content: pdfBuffer,
-                contentType: "application/pdf",
-              },
-            ],
-          });
-        } catch (error) {
-          console.error("Failed to send invoice email", error);
-        }
-      }
+      //   await sendEmail({
+      //     to: order.customer.email,
+      //     subject: "Payment Confirmation & Invoice",
+      //     templateName: "invoice",
+      //     templateData: {
+      //       customerName: order.customer.name,
+      //       orderId: order.id,
+      //       invoiceId: payment.id,
+      //       transactionId: payment.transactionId,
+      //       paymentDate: new Date().toLocaleDateString(),
+      //       invoiceUrl: uploadResult.secure_url,
+      //       items,
+      //       amount: Number(order.totalAmount),
+      //     },
+      //     attachments: [
+      //       {
+      //         filename: `Invoice-${payment.id}.pdf`,
+      //         content: pdfBuffer,
+      //         contentType: "application/pdf",
+      //       },
+      //     ],
+      //   });
+      // } catch (error) {
+      //   console.error("Failed to send invoice email", error);
+      // }
+      // }
 
       break;
     }
