@@ -48,7 +48,6 @@ const getOrders = catchAsync(async (req: Request, res: Response) => {
 
 const getOrderById = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
-
   const result = await orderService.getOrderById(
     id as string,
     req.user.userId,

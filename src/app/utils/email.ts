@@ -1,95 +1,132 @@
-// import ejs from "ejs";
-// import status from "http-status";
-// import nodemailer from "nodemailer";
-// import path from "path";
-// import { envVars } from "../config/env";
-// import AppError from "../errorHelpers/AppError";
+import ejs from "ejs";
+import path from "path";
+import sgMail from "@sendgrid/mail";
+import status from "http-status";
 
-// const transporter = nodemailer.createTransport({
-//   host: envVars.EMAIL_SENDER.SMTP_HOST,
-//   secure: Number(envVars.EMAIL_SENDER.SMTP_PORT) === 465,
-//   auth: {
-//     user: envVars.EMAIL_SENDER.SMTP_USER,
-//     pass: envVars.EMAIL_SENDER.SMTP_PASS,
-//   },
-//   port: Number(envVars.EMAIL_SENDER.SMTP_PORT),
-// });
+import AppError from "../errorHelpers/AppError";
+import { envVars } from "../config/env";
 
-// transporter.verify((error) => {
-//   console.log("host:", envVars.EMAIL_SENDER.SMTP_HOST);
-//   console.log("port:", envVars.EMAIL_SENDER.SMTP_PORT);
-//   console.log("user:", envVars.EMAIL_SENDER.SMTP_USER);
-//   console.log("from:", envVars.EMAIL_SENDER.SMTP_FROM);
-//   console.log("pass:", envVars.EMAIL_SENDER.SMTP_PASS);
+// ======================================================
+// SENDGRID CONFIG
+// ======================================================
 
-//   if (error) {
-//     // Render এ প্রাথমিক কানেকশন এরর দেখার জন্য
-//     console.error("❌ Nodemailer config error [Verification Failed]:", error);
-//   } else {
-//     console.log("✅ Nodemailer is ready to send emails");
-//   }
-// });
+sgMail.setApiKey(envVars.SENDGRID_API_KEY);
 
-// interface SendEmailOptions {
-//   to: string;
-//   subject: string;
-//   templateName: string;
-//   templateData: Record<string, unknown>;
-//   attachments?: Array<{
-//     filename: string;
-//     content?: Buffer | string;
-//     contentType?: string;
-//     path?: string;
-//   }>;
-// }
+// ======================================================
+// TYPES
+// ======================================================
 
-// export const sendEmail = async ({
-//   subject,
-//   templateData,
-//   templateName,
-//   to,
-//   attachments,
-// }: SendEmailOptions) => {
-//   const templatePath = path.resolve(
-//     process.cwd(),
-//     `src/app/templates/${templateName}.ejs`,
-//   );
+interface EmailAttachment {
+  filename: string;
+  content: Buffer;
+  contentType?: string;
+}
 
-//   try {
-//     const html = await ejs.renderFile(templatePath, templateData);
+interface SendEmailOptions {
+  to: string;
+  subject: string;
+  templateName: string;
+  templateData: Record<string, unknown>;
+  attachments?: EmailAttachment[];
+}
 
-//     const info = await transporter.sendMail({
-//       from: envVars.EMAIL_SENDER.SMTP_FROM,
-//       to: to,
-//       subject: subject,
-//       html: html,
-//       attachments: attachments?.map((attachment) => ({
-//         filename: attachment.filename,
-//         content: attachment.content,
-//         contentType: attachment.contentType,
-//         path: attachment.path,
-//       })),
-//     });
+// ======================================================
+// SEND EMAIL FUNCTION
+// ======================================================
 
-//     console.log("✅ Email sent successfully:", {
-//       to,
-//       subject,
-//       templateName,
-//       messageId: info.messageId,
-//     });
-//   } catch (error) {
-//     // Render লগে বিস্তারিত এরর দেখার জন্য ফোকাসড কনসোল লগ
-//     console.error("================ EMAIL SENDING FAILED ================");
-//     console.error("To:", to);
-//     console.error("Subject:", subject);
-//     console.error("Template:", templateName);
-//     console.error("❌ Detailed Error Object:", error);
-//     if (error instanceof Error) {
-//       console.error("Error Message:", error.message);
-//       console.error("Error Stack:", error.stack);
-//     }
-//     console.error("======================================================");
+export const sendEmail = async ({
+  to,
+  subject,
+  templateName,
+  templateData,
+  attachments,
+}: SendEmailOptions) => {
+  try {
+    // ======================================================
+    // TEMPLATE PATH
+    // ======================================================
 
-//     throw new AppError(status.INTERNAL_SERVER_ERROR, "Failed to send email");
-//   }
-// };
+    const templatePath = path.resolve(
+      process.cwd(),
+      `src/app/templates/${templateName}.ejs`,
+    );
+
+    // ======================================================
+    // RENDER EJS TEMPLATE
+    // ======================================================
+
+    const html = await ejs.renderFile(templatePath, templateData);
+
+    // ======================================================
+    // SEND EMAIL
+    // ======================================================
+
+    const response = await sgMail.send({
+      to,
+      from: envVars.SENDGRID_FROM_EMAIL,
+      subject,
+
+      // HTML EMAIL
+      html,
+
+      // TEXT FALLBACK
+      text: subject,
+
+      // ATTACHMENTS
+      attachments: attachments?.map((attachment) => ({
+        filename: attachment.filename,
+
+        // SENDGRID expects BASE64 STRING
+        content: attachment.content.toString("base64"),
+
+        type: attachment.contentType,
+
+        disposition: "attachment",
+      })),
+
+      // OPTIONAL CATEGORY
+      categories: [templateName],
+    });
+
+    // ======================================================
+    // SUCCESS LOG
+    // ======================================================
+
+    console.log("✅ Email sent successfully:", {
+      to,
+      subject,
+      templateName,
+      statusCode: response[0]?.statusCode,
+      headers: response[0]?.headers,
+    });
+
+    return response;
+  } catch (error: any) {
+    // ======================================================
+    // ERROR LOGGING
+    // ======================================================
+
+    console.error("================ EMAIL SENDING FAILED ================");
+
+    console.error("To:", to);
+    console.error("Subject:", subject);
+    console.error("Template:", templateName);
+
+    if (error?.response?.body) {
+      console.error(
+        "SendGrid Response Error:",
+        JSON.stringify(error.response.body, null, 2),
+      );
+    }
+
+    console.error("Detailed Error:", error);
+
+    console.error("======================================================");
+
+    // ======================================================
+    // THROW APP ERROR
+    // ======================================================
+
+    throw new AppError(status.INTERNAL_SERVER_ERROR, "Failed to send email");
+  }
+};
