@@ -67,14 +67,6 @@ const manageUserStatues = async (
     },
   });
 
-  if (payload.status === UserStatus.BANNED) {
-    await prisma.session.deleteMany({
-      where: {
-        userId: targetUserId,
-      },
-    });
-  }
-
   return updatedUser;
 };
 
