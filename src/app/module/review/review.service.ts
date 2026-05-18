@@ -3,6 +3,8 @@ import AppError from "../../errorHelpers/AppError";
 import { prisma } from "../../lib/prisma";
 import { ICreateReviewPayload, IUpdateReviewPayload } from "./review.interface";
 import { OrderStatus, Role } from "../../../generated/prisma/enums";
+import { QueryBuilder } from "../../utils/QueryBuilder";
+import { IQueryParams } from "../../interfaces/query.interface";
 
 const recalculateMedicineRating = async (
   tx: typeof prisma,
@@ -146,9 +148,12 @@ const getReviewsByMedicineId = async (medicineId: string) => {
   return reviews;
 };
 
-const getAllReviews = async () => {
-  const reviews = await prisma.review.findMany({
-    include: {
+const getAllReviews = async (query: IQueryParams) => {
+  const reviews = await new QueryBuilder(prisma.review, query, {
+    searchableFields: ["comment", "customer.name", "medicine.name"],
+    filterableFields: ["rating", "customer.name", "medicine.name"],
+  })
+    .include({
       customer: {
         select: {
           id: true,
@@ -162,11 +167,12 @@ const getAllReviews = async () => {
           name: true,
         },
       },
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
+    })
+    .search()
+    .filter()
+    .paginate()
+    .sort()
+    .execute();
 
   return reviews;
 };

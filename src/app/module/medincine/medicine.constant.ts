@@ -34,6 +34,8 @@ export const medicineIncludeConfig = {
     select: {
       id: true,
       shopName: true,
+      shopAddress: true,
+      shopPhone: true,
     },
   },
 };

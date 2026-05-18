@@ -45,7 +45,10 @@ const registerCustomer = async (payload: IRegisterCustomerPayload) => {
   });
 
   if (isUserExists) {
-    throw new AppError(StatusCodes.CONFLICT, "User already exists");
+    throw new AppError(
+      StatusCodes.BAD_REQUEST,
+      "User already exists. Please login or use a different email.",
+    );
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
@@ -53,6 +56,20 @@ const registerCustomer = async (payload: IRegisterCustomerPayload) => {
   const otpExpiresAt = getOtpExpiry(5);
 
   try {
+    // first send mail if mail send successfully then create user
+    await sendEmail({
+      to: email,
+      subject: "Verify your email",
+      templateName: "otp",
+      templateData: {
+        name,
+        otp,
+        title: "Email Verification OTP",
+        purpose: "verify your email",
+        expiresIn: "5 minutes",
+      },
+    });
+
     const user = await prisma.$transaction(async (tx) => {
       const createdUser = await tx.user.create({
         data: {
@@ -81,19 +98,6 @@ const registerCustomer = async (payload: IRegisterCustomerPayload) => {
       return createdUser;
     });
 
-    await sendEmail({
-      to: email,
-      subject: "Verify your email",
-      templateName: "otp",
-      templateData: {
-        name,
-        otp,
-        title: "Email Verification OTP",
-        purpose: "verify your email",
-        expiresIn: "5 minutes",
-      },
-    });
-
     return sanitizeUser(user);
   } catch (error) {
     console.log("Transaction error : ", error);
@@ -110,6 +114,10 @@ const loginUser = async (payload: ILoginUserPayload) => {
 
   if (!user) {
     throw new AppError(StatusCodes.NOT_FOUND, "User not found");
+  }
+
+  if (!user.emailVerified) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "Email not verified");
   }
 
   if (user.status === UserStatus.BANNED) {
@@ -129,10 +137,6 @@ const loginUser = async (payload: ILoginUserPayload) => {
     }
 
     throw new AppError(StatusCodes.UNAUTHORIZED, "Invalid credentials");
-  }
-
-  if (!user.emailVerified) {
-    throw new AppError(StatusCodes.BAD_REQUEST, "Email not verified");
   }
 
   const isPasswordMatched = await bcrypt.compare(password, user.password);
@@ -393,6 +397,48 @@ const verifyEmail = async (email: string, otp: string) => {
   });
 };
 
+const resendVerificationOtp = async (email: string) => {
+  const user = await prisma.user.findUnique({
+    where: { email },
+  });
+
+  if (!user) {
+    throw new AppError(StatusCodes.NOT_FOUND, "User not found");
+  }
+
+  if (user.status === UserStatus.BANNED) {
+    throw new AppError(StatusCodes.FORBIDDEN, "User is banned");
+  }
+
+  if (user.emailVerified) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "Email already verified");
+  }
+
+  const otp = generateOtp();
+  const otpExpiresAt = getOtpExpiry(5);
+
+  await sendEmail({
+    to: email,
+    subject: "Verify your email",
+    templateName: "otp",
+    templateData: {
+      name: user.name,
+      otp,
+      title: "Email Verification OTP",
+      purpose: "verify your email",
+      expiresIn: "5 minutes",
+    },
+  });
+
+  await prisma.user.update({
+    where: { email },
+    data: {
+      emailVerificationOtp: otp,
+      otpExpiresAt,
+    },
+  });
+};
+
 const forgetPassword = async (email: string) => {
   const isUserExist = await prisma.user.findUnique({
     where: {
@@ -402,6 +448,14 @@ const forgetPassword = async (email: string) => {
 
   if (!isUserExist) {
     throw new AppError(StatusCodes.NOT_FOUND, "User not found");
+  }
+
+  if (!isUserExist.emailVerified) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "Email not verified");
+  }
+
+  if (isUserExist.status === UserStatus.BANNED) {
+    throw new AppError(StatusCodes.FORBIDDEN, "User is banned");
   }
 
   const authProvider = await prisma.authProvider.findUnique({
@@ -415,25 +469,10 @@ const forgetPassword = async (email: string) => {
     );
   }
 
-  if (!isUserExist.emailVerified) {
-    throw new AppError(StatusCodes.BAD_REQUEST, "Email not verified");
-  }
-
-  if (isUserExist.status === UserStatus.BANNED) {
-    throw new AppError(StatusCodes.FORBIDDEN, "User is banned");
-  }
-
   const otp = generateOtp();
   const otpExpiresAt = getOtpExpiry(5);
 
-  await prisma.user.update({
-    where: { email },
-    data: {
-      resetPasswordOtp: otp,
-      resetOtpExpiresAt: otpExpiresAt,
-    },
-  });
-
+  // first send mail if mail send successfully then update user with otp
   await sendEmail({
     to: email,
     subject: "Reset your password",
@@ -444,6 +483,14 @@ const forgetPassword = async (email: string) => {
       title: "Password Reset OTP",
       purpose: "reset your password",
       expiresIn: "5 minutes",
+    },
+  });
+
+  await prisma.user.update({
+    where: { email },
+    data: {
+      resetPasswordOtp: otp,
+      resetOtpExpiresAt: otpExpiresAt,
     },
   });
 };
@@ -643,6 +690,7 @@ export const authService = {
   getNewToken,
   changePassword,
   verifyEmail,
+  resendVerificationOtp,
   forgetPassword,
   resetPassword,
   googleLoginService,

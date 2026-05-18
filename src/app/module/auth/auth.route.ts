@@ -47,6 +47,12 @@ router.post(
   validateRequest(authValidation.verifyEmailValidationSchema),
   authController.verifyEmail,
 );
+
+router.post(
+  "/resend-verification-otp",
+  validateRequest(authValidation.resendVerificationOtpValidationSchema),
+  authController.resendVerificationOtp,
+);
 router.post(
   "/forget-password",
   validateRequest(authValidation.forgetPasswordValidationSchema),

@@ -1,82 +1,108 @@
 # Niramoy Backend
 
-Niramoy Backend is a TypeScript and Express based REST API for an online medicine marketplace. It supports customer, seller, and admin workflows including authentication, seller onboarding, medicine management, cart and order processing, reviews, and role-specific dashboard statistics.
+Niramoy Backend is a TypeScript and Express 5 REST API for an online medicine marketplace. It supports **customer**, **seller**, and **admin** workflows: authentication and profiles, seller onboarding, category and manufacturer data, medicine catalog with media uploads, cart and checkout, **Stripe** payments, order lifecycle, reviews for delivered items, and role-aware dashboard statistics.
 
 ## Highlights
 
-- Email and password authentication with Better Auth
-- Google OAuth login flow
-- OTP-based email verification and password reset
-- Role-based access control for `CUSTOMER`, `SELLER`, and `ADMIN`
-- Seller profile creation with automatic role upgrade
-- Category and manufacturer management
-- Seller-managed medicine catalog with Cloudinary uploads
-- Cart management and order placement
-- Review and rating system
-- Role-aware dashboard statistics
-- Prisma ORM with PostgreSQL
+- **Custom JWT authentication** — access and refresh tokens issued as **HTTP-only cookies** (no Better Auth or external session store).
+- **Google sign-in** — `POST /api/v1/auth/google-login` using Google ID tokens (`google-auth-library`).
+- **Email via SendGrid** — OTP verification, password reset, and payment-related mail using **EJS** templates under `src/app/templates/`.
+- **Stripe Checkout** — order payment flow with **`POST /webhook`** for Stripe events (signature-verified raw body).
+- **Role-based access** for `CUSTOMER`, `SELLER`, and `ADMIN`.
+- Seller profile creation (role upgrade from customer to seller).
+- Category and manufacturer management (admin).
+- Seller-managed medicine catalog with **Cloudinary** uploads.
+- Cart, stock-aware orders, seller status updates, customer cancellation where allowed.
+- Reviews tied to delivered order items.
+- **Prisma** ORM with **PostgreSQL**.
 
-## Tech Stack
+## Tech stack
 
-- Runtime: Node.js
-- Language: TypeScript
-- Framework: Express 5
-- Authentication: Better Auth, JWT, cookie-based sessions
-- Database: PostgreSQL
-- ORM: Prisma
-- Validation: Zod
-- File Upload: Multer, Cloudinary
-- Email: Nodemailer, EJS templates
-- Build Tool: tsup
+| Area | Choice |
+|------|--------|
+| Runtime | Node.js 18+ |
+| Language | TypeScript |
+| HTTP | Express 5 |
+| Database | PostgreSQL |
+| ORM | Prisma |
+| Validation | Zod |
+| Auth | `jsonwebtoken`, cookies (`cookie-parser`) |
+| OAuth | `google-auth-library` |
+| Email | `@sendgrid/mail`, EJS |
+| Payments | Stripe (`stripe`) |
+| Uploads | Multer, Cloudinary |
+| Build | `tsup` |
 
-## Core Features
+## Core features
 
-### Authentication and Identity
+### Authentication and identity
 
-- Register and login users
-- Refresh tokens using cookies
-- Change password for authenticated users
-- Verify email with OTP
-- Reset password with OTP
-- Login with Google OAuth
-- Better Auth internal routes mounted at `/api/auth`
-- Custom project auth routes mounted at `/api/v1/auth`
+- Register (customer) and login with email and password.
+- **JWT** access and refresh tokens set on the response as cookies; `POST /api/v1/auth/refresh-token` issues new tokens from the refresh cookie.
+- `GET /api/v1/auth/me`, `PATCH /api/v1/auth/update-me`, `POST /api/v1/auth/logout`, `POST /api/v1/auth/change-password`.
+- Email verification and resend OTP; forgot and reset password with OTP.
+- **Google** login with ID token verification and linked `AuthProvider` records.
+- All auth HTTP routes live under **`/api/v1/auth`** only (there is no `/api/auth` mount).
 
-### Role-Based Workflows
+### Role-based workflows
 
-- Customers can browse medicines, manage cart, place orders, and review delivered items
-- Customers can become sellers through `POST /seller/create-profile`
-- Sellers can create, update, list, and soft-delete their medicines
-- Admins can manage user status and maintain category and manufacturer data
+- Customers browse medicines, manage the cart, place orders, and review delivered items.
+- Customers become sellers via `POST /api/v1/seller/create-profile`.
+- Sellers create, update, list, and soft-delete their medicines.
+- Admins manage user status and maintain categories and manufacturers.
 
-### Commerce Flow
+### Commerce and payments
 
-- Public medicine browsing
-- Customer cart with subtotal recalculation
-- Stock-aware order placement
-- Seller order status progression
-- Order cancellation for eligible customer orders
-- Review system tied to delivered order items only
+- Public medicine browsing; cart subtotal handling; stock-aware order initiation.
+- **Order payment:** `POST /api/v1/order` creates an order, then `POST /api/v1/order/:id/place` creates a **Stripe Checkout Session** and returns a `paymentUrl` for the client to redirect the user.
+- **Webhooks:** Stripe calls `POST /webhook` on this server; the handler updates payment and order state and can send confirmation email with invoice data (see `src/app/module/payment/`).
+- Seller order status progression; customer cancellation when allowed; reviews only for delivered lines.
 
-## Project Structure
+## How auth and payments fit together
+
+```mermaid
+flowchart LR
+  subgraph jwtAuth [JWT_auth]
+    Login[Login_or_register] --> SetCookies[Set_access_and_refresh_cookies]
+    SetCookies --> Requests[API_requests_with_credentials]
+    Requests --> CheckAuth[checkAuth_reads_accessToken_JWT]
+  end
+```
+
+```mermaid
+sequenceDiagram
+  participant Client
+  participant API as Niramoy_API
+  participant Stripe
+  Client->>API: POST_api_v1_order
+  Client->>API: POST_api_v1_order_id_place
+  API->>Stripe: Create_Checkout_Session
+  Stripe-->>Client: Redirect_to_checkout_URL
+  Stripe->>API: POST_webhook
+  API->>API: Update_payment_and_order
+```
+
+## Project structure
 
 ```text
 Niramoy-Backend/
 ├── prisma/
 │   ├── migrations/
-│   ├── schema/
-│   │   ├── auth.prisma
-│   │   ├── cart.prisma
-│   │   ├── category.prisma
-│   │   ├── enums.prisma
-│   │   ├── manufacturer.prisma
-│   │   ├── medicine.prisma
-│   │   ├── order.prisma
-│   │   ├── orderItem.prisma
-│   │   ├── review.prisma
-│   │   ├── seller.prisma
-│   │   ├── sellerOrder.prisma
-│   │   └── schema.prisma
+│   └── schema/
+│       ├── auth.prisma
+│       ├── cart.prisma
+│       ├── cartItem.prisma
+│       ├── category.prisma
+│       ├── enums.prisma
+│       ├── manufacturer.prisma
+│       ├── medicine.prisma
+│       ├── order.prisma
+│       ├── orderItem.prisma
+│       ├── payment.prisma
+│       ├── review.prisma
+│       ├── seller.prisma
+│       ├── sellerOrder.prisma
+│       └── schema.prisma
 ├── src/
 │   ├── app/
 │   │   ├── config/
@@ -90,12 +116,13 @@ Niramoy-Backend/
 │   │   │   ├── manufacturer/
 │   │   │   ├── medincine/
 │   │   │   ├── order/
+│   │   │   ├── payment/        # Stripe webhook + payment helpers (used with orders)
 │   │   │   ├── review/
 │   │   │   ├── seller/
 │   │   │   └── stats/
 │   │   ├── routes/
 │   │   ├── shared/
-│   │   ├── templates/
+│   │   ├── templates/          # EJS email templates
 │   │   └── utils/
 │   ├── generated/
 │   ├── app.ts
@@ -106,82 +133,58 @@ Niramoy-Backend/
 └── tsup.config.ts
 ```
 
-Note: the module folder is named `medincine` in the repository, while the public API path is `/medicine`.
+Note: the module folder is named `medincine` in the repository; the HTTP API path is `/api/v1/medicine`. Payment logic is wired through **order** routes and the root **`/webhook`** route, not a separate `/api/v1/payment` router.
 
-## API Base Paths
+## API base paths
 
-- Root health route: `/`
-- Better Auth routes: `/api/auth/*`
-- App routes: `/api/v1/*`
+| Path | Purpose |
+|------|---------|
+| `GET /` | Simple health or welcome message |
+| `/api/v1/*` | Versioned application routes |
+| `POST /webhook` | **Stripe webhook** (must receive raw JSON; registered in Stripe Dashboard or Stripe CLI) |
 
-## API Modules Summary
+There is **no** Better Auth or `/api/auth` namespace.
 
-- `/api/v1/auth`
-  Registration, login, profile, password flows, email verification, and Google OAuth helpers.
-- `/api/v1/seller`
-  Customer to seller conversion.
-- `/api/v1/category`
-  Category CRUD, admin-managed.
-- `/api/v1/manufacturer`
-  Manufacturer CRUD, admin-managed.
-- `/api/v1/medicine`
-  Public medicine browsing plus seller medicine management.
-- `/api/v1/cart`
-  Customer cart operations.
-- `/api/v1/order`
-  Customer ordering, seller status updates, and order detail or listing views for customer, seller, and admin.
-- `/api/v1/review`
-  Delivered-order review workflow.
-- `/api/v1/admin`
-  User listing and status management.
-- `/api/v1/stats`
-  Role-specific dashboard data.
+## API modules summary
 
-## Authentication Notes
+- **`/api/v1/auth`** — Registration, login, refresh, logout, profile, password change, email OTP verify/resend, forgot/reset password, Google login.
+- **`/api/v1/seller`** — Customer to seller conversion (`POST /create-profile`).
+- **`/api/v1/category`**, **`/api/v1/manufacturer`** — Admin-managed CRUD.
+- **`/api/v1/medicine`** — Public listing and seller medicine management.
+- **`/api/v1/cart`** — Customer cart.
+- **`/api/v1/order`** — Create order, **`POST /:id/place`** for Stripe Checkout session, listings, detail, cancel, seller status updates.
+- **`/api/v1/review`** — Delivered-order reviews.
+- **`/api/v1/admin`** — User listing and status.
+- **`/api/v1/stats`** — Role-specific dashboard data.
 
-This project uses cookie-based authentication for protected routes.
+## Authentication notes
 
-Protected endpoints expect:
+- **Cookies:** On successful login (or equivalent), the API sets **`accessToken`** and **`refreshToken`** as **HTTP-only** cookies (see `src/app/utils/token.ts` for options such as `secure` and `SameSite`).
+- **Protected routes:** `checkAuth` reads **`accessToken`**, verifies it with `ACCESS_TOKEN_SECRET`, and attaches `req.user` (`userId`, `email`, `role`, etc.). There is **no** Better Auth session cookie.
+- **Refresh:** Call **`POST /api/v1/auth/refresh-token`** with the **`refreshToken`** cookie to obtain new tokens (response sets cookies again).
+- **Frontend:** Use `credentials: 'include'` (or equivalent) on requests to this API, and ensure **`FRONTEND_URL`** is allowed by CORS. After the user becomes a seller, refresh tokens so the JWT **role** matches before calling seller-only routes.
 
-- `accessToken`
-- `refreshToken` for token refresh flow
-- `better-auth.session_token`
+## Environment variables
 
-Important behavior:
+Configuration is loaded in `src/app/config/env.ts`. **Every variable below is required** at startup; missing values throw during boot.
 
-- Middleware checks the Better Auth session cookie and the JWT access token
-- Seller creation changes the user role from `CUSTOMER` to `SELLER`
-- After seller profile creation, client cookies and stored tokens must be refreshed before calling seller-only routes
-
-## Environment Variables
-
-The application validates required environment variables on startup. A full `.env` is needed even for many local operations because config loading is eager.
-
-Create a `.env` file with at least:
+Create a `.env` file:
 
 ```env
 NODE_ENV=development
 PORT=5000
 DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/DB_NAME
 
-BETTER_AUTH_SECRET=your_better_auth_secret
-BETTER_AUTH_URL=http://localhost:5000
-
-ACCESS_TOKEN_SECRET=your_access_secret
-REFRESH_TOKEN_SECRET=your_refresh_secret
+ACCESS_TOKEN_SECRET=your_access_token_secret
+REFRESH_TOKEN_SECRET=your_refresh_token_secret
 ACCESS_TOKEN_EXPIRES_IN=1d
 REFRESH_TOKEN_EXPIRES_IN=7d
-BETTER_AUTH_SESSION_TOKEN_EXPIRES_IN=1d
-BETTER_AUTH_SESSION_TOKEN_UPDATE_AGE=1d
 
-EMAIL_SENDER_SMTP_USER=your_smtp_user
-EMAIL_SENDER_SMTP_PASS=your_smtp_password
-EMAIL_SENDER_SMTP_HOST=smtp.example.com
-EMAIL_SENDER_SMTP_PORT=465
-EMAIL_SENDER_SMTP_FROM=no-reply@example.com
+SENDGRID_API_KEY=your_sendgrid_api_key
+SENDGRID_FROM_EMAIL=verified-sender@yourdomain.com
 
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
+GOOGLE_CLIENT_ID=your_google_oauth_client_id
+GOOGLE_CLIENT_SECRET=your_google_oauth_client_secret
 
 FRONTEND_URL=http://localhost:3000
 
@@ -189,22 +192,39 @@ CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
 
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+
 ADMIN_EMAIL=admin@gmail.com
-ADMIN_PASSWORD=admin123
+ADMIN_PASSWORD==admin123
 ```
+
+### SendGrid
+
+- Create an API key in the SendGrid dashboard.
+- Use a **verified sender** (single sender or domain) matching `SENDGRID_FROM_EMAIL`.
+
+### Google OAuth
+
+- Create OAuth 2.0 credentials in Google Cloud Console.
+- Use the same **Web client** ID (and secret if applicable) as configured for your frontend ID token flow; the backend verifies ID tokens against `GOOGLE_CLIENT_ID`.
+
+### Stripe
+
+- **`STRIPE_SECRET_KEY`** — Secret API key (test or live).
+- **`STRIPE_WEBHOOK_SECRET`** — Signing secret for the endpoint **`POST https://<your-host>/webhook`** (or the URL Stripe CLI forwards to when developing locally).
+- For local development, use the [Stripe CLI](https://docs.stripe.com/stripe-cli) to forward webhooks to `http://localhost:<PORT>/webhook`.
 
 ## Prerequisites
 
-Before running locally, make sure you have:
+- Node.js 18 or newer and npm
+- PostgreSQL
+- [Cloudinary](https://cloudinary.com/) account for uploads
+- [SendGrid](https://sendgrid.com/) API key and verified sender
+- [Google Cloud](https://console.cloud.google.com/) OAuth client for Google sign-in
+- [Stripe](https://stripe.com/) account for payments and webhooks
 
-- Node.js 18 or newer
-- npm
-- PostgreSQL database
-- Cloudinary account for file upload features
-- SMTP credentials for OTP and email templates
-- Google OAuth credentials for Google login testing
-
-## Local Setup
+## Local setup
 
 ### 1. Clone and install dependencies
 
@@ -216,7 +236,7 @@ npm install
 
 ### 2. Configure environment variables
 
-Create a `.env` file using the required variables listed above.
+Copy the list above into `.env` and fill in real values.
 
 ### 3. Generate Prisma client
 
@@ -230,55 +250,51 @@ npm run generate
 npm run migrate
 ```
 
-If you want to sync schema directly without creating a migration:
+Optional: push schema without a migration file:
 
 ```bash
 npm run push
 ```
 
-### 5. Start the development server
+### 5. Stripe webhooks (when testing payments)
+
+- Install Stripe CLI and run `stripe listen --forward-to localhost:5000/webhook` (adjust host/port).
+- Put the CLI signing secret into `STRIPE_WEBHOOK_SECRET` while testing, or register a Dashboard webhook for a deployed URL.
+
+### 6. Start the development server
 
 ```bash
 npm run dev
 ```
 
-The server starts on:
+Default base URL:
 
 ```text
 http://localhost:5000
 ```
 
-### 6. Build for production
+### 7. Production build
 
 ```bash
 npm run build
 npm start
 ```
 
-## Available Scripts
+## Available scripts
 
-- `npm run dev`
-  Start the server in watch mode using `tsx`.
-- `npm run build`
-  Bundle the app with `tsup`.
-- `npm start`
-  Run the compiled server from `dist/server.js`.
-- `npm run lint`
-  Run ESLint against `src`.
-- `npm run generate`
-  Generate Prisma client.
-- `npm run migrate`
-  Run Prisma development migrations.
-- `npm run push`
-  Push Prisma schema to the database.
-- `npm run pull`
-  Pull database schema into Prisma.
-- `npm run studio`
-  Open Prisma Studio.
+- `npm run dev` — Watch mode with `tsx`.
+- `npm run build` — Bundle with `tsup`.
+- `npm start` — Run `dist/server.js`.
+- `npm run lint` — ESLint on `src`.
+- `npm run generate` — Prisma client.
+- `npm run migrate` — Prisma migrate dev.
+- `npm run push` — `prisma db push`.
+- `npm run pull` — `prisma db pull`.
+- `npm run studio` — Prisma Studio.
 
-## Response Conventions
+## Response conventions
 
-Successful API responses follow a common structure:
+Successful responses:
 
 ```json
 {
@@ -288,7 +304,7 @@ Successful API responses follow a common structure:
 }
 ```
 
-Errors are returned through a centralized global error handler:
+Errors (global handler):
 
 ```json
 {
@@ -303,28 +319,25 @@ Errors are returned through a centralized global error handler:
 }
 ```
 
-## File Upload Behavior
+## File upload behavior
 
-File upload endpoints use Cloudinary through Multer storage.
+Uploads use Cloudinary via Multer.
 
-- Upload field name: `file`
-- Multipart JSON payload field name: `data`
-- Upload endpoints:
+- Field name: `file`
+- Multipart JSON field name: `data`
+- Endpoints:
   - `PATCH /api/v1/auth/update-me`
   - `POST /api/v1/medicine`
   - `PATCH /api/v1/medicine/:id`
 
+## Suggested workflow for new developers
 
-## Suggested Workflow For New Developers
-
-1. Set up PostgreSQL and create the database.
-2. Add all required environment variables.
-3. Run `npm install`.
-4. Run `npm run generate`.
-5. Run `npm run migrate`.
-6. Start the server with `npm run dev`.
-7. Import the Postman collection for manual API testing if needed.
+1. Create a PostgreSQL database and set `DATABASE_URL`.
+2. Fill in all required `.env` variables (especially SendGrid, Google, Stripe, Cloudinary).
+3. Run `npm install`, then `npm run generate`, then `npm run migrate`.
+4. Start `npm run dev` and optionally forward Stripe webhooks for payment tests.
+5. Use Postman or your frontend against `http://localhost:5000` with credentials enabled for cookie auth.
 
 ## License
 
-This project is currently published with the `ISC` license as declared in `package.json`.
+This project is published under the `ISC` license as declared in `package.json`.
