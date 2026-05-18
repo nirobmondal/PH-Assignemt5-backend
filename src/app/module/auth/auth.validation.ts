@@ -59,8 +59,8 @@ const resendVerificationOtpValidationSchema = z.object({
 const updateSellerProfileValidationSchema = z
   .object({
     shopName: z.string().trim().min(1).optional(),
-    shopAddress: z.string().trim().min(1).optional(),
-    shopPhone: z.string().trim().min(1).optional(),
+    shopAddress: z.string().optional(),
+    shopPhone: z.string().optional(),
   })
   .refine((value) => Object.keys(value).length > 0, {
     message: "At least one seller profile field is required",
@@ -70,7 +70,7 @@ const updateSellerProfileValidationSchema = z
 const updateMeValidationSchema = z
   .object({
     name: z.string().trim().min(1).optional(),
-    phone: z.string().trim().min(1).optional(),
+    phone: z.string().optional(),
     image: z.url("Image must be a valid URL").optional(),
     seller: updateSellerProfileValidationSchema,
   })
